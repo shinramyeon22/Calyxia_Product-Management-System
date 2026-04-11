@@ -1,24 +1,23 @@
+// src/pages/AuthCallback.jsx
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
-export default function AuthCallbackPage() {
+import { supabase } from '../supabaseClient';
+
+export default function AuthCallback() {
   const navigate = useNavigate();
+
   useEffect(() => {
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        const { data: userRow } = await supabase
-          .from('user')
-          .select('record_status')
-          .eq('userId', session.user.id)
-          .single();
-        if (userRow?.record_status === 'ACTIVE') {
-          navigate('products');
-          } else {
-          await supabase.auth.signOut();
-          navigate('/login?error=not_activated');
-          }
-        }
-      });
-    }, []);
-  return <p>Signing you in...</p>;
-  }
+    const handleAuth = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (data?.session) {
+        navigate('/dashboard');
+      } else {
+        navigate('/login');
+      }
+    };
+    handleAuth();
+  }, [navigate]);
+
+  // FIX: Ensure there is NO slash in the FIRST <p>
+  return <p>Signing you in...</p>; 
+}
