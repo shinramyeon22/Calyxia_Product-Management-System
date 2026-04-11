@@ -19,8 +19,8 @@ export default function AuthCallback() {
   }, [navigate]);
 
   return (
-    <div style={{ padding: '20px' }}>
-      Signing you in...
+    <div style={{ color: 'white', padding: '20px' }}>
+      Authenticating...
     </div>
   );
 }
