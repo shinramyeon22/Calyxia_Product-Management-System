@@ -1,7 +1,11 @@
 // src/pages/Register.jsx
 import { useState } from 'react';
+import { supabase } from '../supabaseClient'; // Path to your client initialization
+import { useNavigate } from 'react-router-dom';
 
 export default function Register() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -14,10 +18,45 @@ export default function Register() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  // 1. EMAIL/PASSWORD SIGN UP PATH
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert("Design Preview Mode\n\nAccount would be created here.");
-    console.log("Registration data:", formData);
+    setLoading(true);
+
+    const { data, error } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        // These extra fields will be stored in auth.users.raw_user_meta_data
+        // and can be used by your trigger to fill the public.user table
+        data: {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          username: formData.username,
+        },
+        emailRedirectTo: 'http://localhost:5173/login',
+      },
+    });
+
+    if (error) {
+      alert("Registration Error: " + error.message);
+    } else {
+      alert("Success! Check your email for verification. Note: Your account is INACTIVE until approved by an admin.");
+      navigate('/login');
+    }
+    setLoading(false);
+  };
+
+  // 2. GOOGLE OAUTH PATH
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: 'http://localhost:5173/auth/callback', // Pointing to your callback route
+      },
+    });
+
+    if (error) alert("Google Sign up error: " + error.message);
   };
 
   return (
@@ -80,17 +119,16 @@ export default function Register() {
             className="auth-input"
           />
 
-          <button type="submit" className="auth-button primary">
-            Create Account
+          <button type="submit" className="auth-button primary" disabled={loading}>
+            {loading ? "Creating Account..." : "Create Account"}
           </button>
         </form>
 
         <div className="divider">or continue with</div>
 
-        {/* NEW GOOGLE BUTTON - Matching your reference image */}
         <button
           type="button"
-          onClick={() => alert("Google Sign up clicked (design preview)")}
+          onClick={handleGoogleLogin} // Triggering the Google OAuth
           className="google-btn"
         >
           <img
@@ -103,7 +141,7 @@ export default function Register() {
 
         <p className="text-center text-sm text-zinc-400 mt-8">
           Already have an account?{' '}
-          <a href="#" className="text-[#aa3bff] hover:underline font-medium">
+          <a href="/login" className="text-[#aa3bff] hover:underline font-medium">
             Sign in
           </a>
         </p>
