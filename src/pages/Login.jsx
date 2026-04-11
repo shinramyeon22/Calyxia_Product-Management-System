@@ -1,23 +1,50 @@
 // src/pages/Login.jsx
 import { useState } from 'react';
 import { supabase } from '../supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  
+  // State for Email/Password
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
+  // 1. GOOGLE LOGIN LOGIC
   const handleGoogleLogin = async () => {
     setLoading(true);
-    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin,
+        // Pointing specifically to the callback route for reliability
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
     if (error) {
-      alert(error.message); // You can replace this with a better toast later
+      alert("Google Auth Error: " + error.message);
       setLoading(false);
+    }
+  };
+
+  // 2. EMAIL/PASSWORD LOGIN LOGIC
+  const handleEmailLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      alert("Login Error: " + error.message);
+      setLoading(false);
+    } else {
+      // If login is successful, AuthContext will handle the session 
+      // and redirect them if they are ACTIVE.
+      navigate('/dashboard');
     }
   };
 
@@ -48,7 +75,7 @@ export default function Login() {
             </p>
           </div>
 
-          {/* Google Button - The Star of the Show */}
+          {/* Google Button */}
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
@@ -78,12 +105,15 @@ export default function Login() {
             <div className="flex-1 h-px bg-gray-200 dark:bg-gray-800"></div>
           </div>
 
-          {/* Email/Password Form (kept minimal as per your request) */}
-          <form className="space-y-5">
+          {/* Email/Password Form */}
+          <form onSubmit={handleEmailLogin} className="space-y-5">
             <div>
               <input
                 type="email"
                 placeholder="Email address"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-5 py-4 border border-gray-300 dark:border-gray-700 rounded-2xl 
                            focus:outline-none focus:border-purple-500 bg-white dark:bg-gray-900"
               />
@@ -92,18 +122,29 @@ export default function Login() {
               <input
                 type="password"
                 placeholder="Password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-5 py-4 border border-gray-300 dark:border-gray-700 rounded-2xl 
                            focus:outline-none focus:border-purple-500 bg-white dark:bg-gray-900"
               />
             </div>
 
             <button
-              type="button"
-              className="w-full py-4 bg-[#aa3bff] hover:bg-[#9a2be8] text-white font-medium rounded-2xl transition"
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 bg-[#aa3bff] hover:bg-[#9a2be8] text-white font-medium rounded-2xl transition disabled:opacity-50"
             >
-              Sign in with Email
+              {loading ? "Signing in..." : "Sign in with Email"}
             </button>
           </form>
+          
+          <p className="text-center text-sm text-zinc-400 mt-6">
+            Don't have an account?{' '}
+            <a href="/register" className="text-[#aa3bff] hover:underline font-medium">
+              Register here
+            </a>
+          </p>
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-8">
