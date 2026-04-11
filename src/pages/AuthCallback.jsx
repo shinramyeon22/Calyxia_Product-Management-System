@@ -1,4 +1,3 @@
-// src/pages/AuthCallback.jsx
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -12,12 +11,16 @@ export default function AuthCallback() {
       if (data?.session) {
         navigate('/dashboard');
       } else {
+        console.error("Auth error:", error);
         navigate('/login');
       }
     };
     handleAuth();
   }, [navigate]);
 
-  // FIX: Ensure there is NO slash in the FIRST <p>
-  return <p>Signing you in...</p>; 
+  return (
+    <div style={{ padding: '20px' }}>
+      Signing you in...
+    </div>
+  );
 }
