@@ -20,5 +20,5 @@ export default function AuthCallbackPage() {
         }
       });
     }, []);
-  return </p>Signing you in...</p>;
+  return <p>Signing you in...</p>;
   }
