@@ -12,7 +12,6 @@ dist
 dist-ssr
 *.local
 .env
-.env.local
 dist
 
 # Editor directories and files
@@ -25,3 +24,4 @@ dist
 *.njsproj
 *.sln
 *.sw?
+ 
