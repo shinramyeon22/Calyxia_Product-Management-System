@@ -1,6 +1,6 @@
 # Sprint 1 Official Log: Foundation & Authentication
 
-**Dates:** March 28, 2026 – April 10, 2026
+**Dates:** April 4, 2026 – April 13, 2026
 **Status:** Completed
 
 ## 1. Sprint Overview
