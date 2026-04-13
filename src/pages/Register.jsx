@@ -1,151 +1,102 @@
-// src/pages/Register.jsx
-import { useState } from 'react';
-import { supabase } from '../supabaseClient'; // Path to your client initialization
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { supabase } from '../supabaseClient';
 
-export default function Register() {
-  const navigate = useNavigate();
+const Register = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    username: '',
-    email: '',
-    password: '',
-  });
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  // FIX: Added the missing state for success messages
+  const [successMsg, setSuccessMsg] = useState('');
+ 
+  // FIX: This function MUST be defined inside the component
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/auth/callback',
+        },
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error logging in with Google:', error.message);
+      alert(error.message);
+    }
   };
 
-  // 1. EMAIL/PASSWORD SIGN UP PATH
-  const handleSubmit = async (e) => {
+  const handleEmailRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    const { data, error } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        // These extra fields will be stored in auth.users.raw_user_meta_data
-        // and can be used by your trigger to fill the public.user table
-        data: {
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          username: formData.username,
-        },
-        emailRedirectTo: 'http://localhost:5173/login',
-      },
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
     });
 
     if (error) {
-      alert("Registration Error: " + error.message);
+      alert(error.message);
     } else {
-      alert("Success! Check your email for verification. Note: Your account is INACTIVE until approved by an admin.");
-      navigate('/login');
+      setSuccessMsg('Registration successful! Access is pending Admin activation.');
     }
     setLoading(false);
   };
 
-  // 2. GOOGLE OAUTH PATH
-  const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: 'http://localhost:5173/auth/callback', // Pointing to your callback route
-      },
-    });
-
-    if (error) alert("Google Sign up error: " + error.message);
-  };
-
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-logo">C</div>
-        
-        <h1 className="auth-title">Create your account</h1>
-        <p className="auth-subtitle">Join Calyxia and start managing products smarter</p>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="text"
-              name="firstName"
-              placeholder="First Name"
-              value={formData.firstName}
-              onChange={handleChange}
-              required
-              className="auth-input"
+    <div className="auth-container" style={{ padding: '20px', maxWidth: '400px', margin: '0 auto' }}>
+      <h2>Create Account</h2>
+      
+      {successMsg ? (
+        <div className="success-banner" style={{ color: 'green', marginBottom: '15px' }}>
+          {successMsg}
+        </div>
+      ) : (
+        <>
+          <form onSubmit={handleEmailRegister} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <input 
+              type="email" 
+              placeholder="Email" 
+              value={email}
+              onChange={e => setEmail(e.target.value)} 
+              required 
             />
-            <input
-              type="text"
-              name="lastName"
-              placeholder="Last Name"
-              value={formData.lastName}
-              onChange={handleChange}
-              required
-              className="auth-input"
+            <input 
+              type="password" 
+              placeholder="Password" 
+              value={password}
+              onChange={e => setPassword(e.target.value)} 
+              required 
             />
-          </div>
+            <button type="submit" disabled={loading}>
+              {loading ? 'Processing...' : 'Register'}
+            </button>
+          </form>
 
-          <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            value={formData.username}
-            onChange={handleChange}
-            required
-            className="auth-input"
-          />
+          <div style={{ margin: '20px 0', textAlign: 'center', color: '#666' }}>OR</div>
 
-          <input
-            type="email"
-            name="email"
-            placeholder="Email address"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            className="auth-input"
-          />
-
-          <input
-            type="password"
-            name="password"
-            placeholder="Create password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            className="auth-input"
-          />
-
-          <button type="submit" className="auth-button primary" disabled={loading}>
-            {loading ? "Creating Account..." : "Create Account"}
+          {/* FIX: onClick name now matches handleGoogleSignIn exactly */}
+          <button 
+            onClick={handleGoogleSignIn}
+            className="google-auth-button"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              padding: '10px',
+              width: '100%',
+              cursor: 'pointer',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              backgroundColor: 'white'
+            }}
+          >
+            <img src="https://authjs.dev/img/providers/google.svg" width="20" alt="Google" />
+            Continue with Google
           </button>
-        </form>
-
-        <div className="divider">or continue with</div>
-
-        <button
-          type="button"
-          onClick={handleGoogleLogin} // Triggering the Google OAuth
-          className="google-btn"
-        >
-          <img
-            src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png"
-            alt="Google"
-            className="google-logo"
-          />
-          Sign up with Google
-        </button>
-
-        <p className="text-center text-sm text-zinc-400 mt-8">
-          Already have an account?{' '}
-          <a href="/login" className="text-[#aa3bff] hover:underline font-medium">
-            Sign in
-          </a>
-        </p>
-      </div>
+        </>
+      )}
     </div>
   );
-}
+};
+
+export default Register;
