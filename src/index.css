@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@tailwind base;
-@tailwind components;
+@tailwindcss/preflight base;
+@tailwindutilities components;
 @tailwind utilities;
 
 :root {
@@ -156,6 +156,6 @@ h1, h2, h3 {
   height: 1px;
   background: var(--border);
 }
-}
+
 
  

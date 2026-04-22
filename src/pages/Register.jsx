@@ -8,13 +8,13 @@ const Register = () => {
   // FIX: Added the missing state for success messages
   const [successMsg, setSuccessMsg] = useState('');
  
-  // FIX: This function MUST be defined inside the component
+  // FIX: This fu nction MUST be defined inside the component
   const handleGoogleSignIn = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin + '/auth/callback',
+          redirectTo: window.location.origin + '/AuthCallbackPage',
         },
       });
       if (error) throw error;
@@ -30,7 +30,7 @@ const Register = () => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
+      options: { emailRedirectTo: `${window.location.origin}/AuthCallbackPage` }
     });
 
     if (error) {
@@ -39,7 +39,7 @@ const Register = () => {
       setSuccessMsg('Registration successful! Access is pending Admin activation.');
     }
     setLoading(false);
-  };
+  };  
 
   return (
     <div className="auth-container" style={{ padding: '20px', maxWidth: '400px', margin: '0 auto' }}>
@@ -97,7 +97,6 @@ const Register = () => {
       )}
     </div>
   );
-}
 };
 
 export default Register;
