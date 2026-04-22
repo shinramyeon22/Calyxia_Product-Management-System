@@ -19,19 +19,36 @@ const Login = () => {
 
   const params = new URLSearchParams(window.location.search);
   const errorParam = params.get('error'); 
+<<<<<<< HEAD
   // If errorParam === 'not_activated', show "Account not yet active."
+=======
+>>>>>>> a6691f171f9622c2ccf7159815cd846cbccd17b0
 
   return (
     <div className="auth-container p-6 max-w-sm mx-auto">
       <h2 className="text-2xl font-bold mb-4">Login</h2>
 
+<<<<<<< HEAD
       {/* Login Guard Error Message */}
+=======
+      {/* Login Guard Error Message from Context */}
+>>>>>>> a6691f171f9622c2ccf7159815cd846cbccd17b0
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
 
+<<<<<<< HEAD
+=======
+      {/* Fix: Used errorParam to render the not_activated warning */}
+      {errorParam === 'not_activated' && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4">
+          Account not yet active. Please wait for admin approval.
+        </div>
+      )}
+
+>>>>>>> a6691f171f9622c2ccf7159815cd846cbccd17b0
       {/* Professor's Button Layout (Tailwind) */}
       <div className="flex flex-col gap-3">
         {/* Email/Password form */}

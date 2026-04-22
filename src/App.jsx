@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Register from "./pages/Register";
@@ -23,3 +24,18 @@ function App() {
 export default App;
 
 
+=======
+// src/App.jsx
+import Register from './pages/Register.jsx';
+import './App.css';
+
+function App() {
+  return (
+    <div className="App">
+      <Register />
+    </div>
+  );
+}
+
+export default App;
+>>>>>>> a6691f171f9622c2ccf7159815cd846cbccd17b0

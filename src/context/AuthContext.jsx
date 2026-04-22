@@ -1,5 +1,6 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient'; // Ensure your supabase client is initialized here
+import { supabase } from '../supabaseClient'; 
 
 const AuthContext = createContext({});
 
@@ -7,6 +8,27 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Fix: Moved checkUserStatus ABOVE useEffect to prevent "accessed before declared" error
+  const checkUserStatus = async (currentSession) => {
+    const { data: profile, error } = await supabase
+      .from('user') // This is your public user table
+      .select('record_status, user_type')
+      .eq('id', currentSession.user.id)
+      .single();
+
+    // Fix: Used the 'error' variable here
+    if (error || profile?.record_status === 'INACTIVE') {
+      alert("Your account is pending admin approval or could not be found.");
+      await supabase.auth.signOut();
+      setSession(null);
+      setUser(null);
+    } else {
+      setSession(currentSession);
+      setUser({ ...currentSession.user, ...profile });
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
     // 1. Check for an existing session on app load
@@ -33,27 +55,8 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // 3. The "Inactive Gate" (Critical Sprint 1 Requirement)
-  const checkUserStatus = async (currentSession) => {
-    const { data: profile, error } = await supabase
-      .from('user') // This is your public user table
-      .select('record_status, user_type')
-      .eq('id', currentSession.user.id)
-      .single();
-
-    if (profile?.record_status === 'INACTIVE') {
-      alert("Your account is pending admin approval.");
-      await supabase.auth.signOut();
-      setSession(null);
-      setUser(null);
-    } else {
-      setSession(currentSession);
-      setUser({ ...currentSession.user, ...profile });
-    }
-    setLoading(false);
-  };
 
   const value = {
     session,
