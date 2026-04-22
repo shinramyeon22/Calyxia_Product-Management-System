@@ -9,29 +9,43 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fix: Moved checkUserStatus ABOVE useEffect to prevent "accessed before declared" error
   const checkUserStatus = async (currentSession) => {
-    const { data: profile, error } = await supabase
-      .from('user') // This is your public user table
-      .select('record_status, user_type')
-      .eq('id', currentSession.user.id)
-      .single();
+    try {
+      const { data: profile, error } = await supabase
+        .from('user') 
+        .select('record_status, user_type')
+        .eq('userId', currentSession.user.id) // Ensure this matches your column name (userId or id)
+        .single();
 
-    // Fix: Used the 'error' variable here
-    if (error || profile?.record_status === 'INACTIVE') {
-      alert("Your account is pending admin approval or could not be found.");
-      await supabase.auth.signOut();
-      setSession(null);
-      setUser(null);
-    } else {
-      setSession(currentSession);
-      setUser({ ...currentSession.user, ...profile });
+      // CASE 1: User exists but is INACTIVE
+      if (profile?.record_status === 'INACTIVE') {
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        // Better to redirect with a URL param than a blocking alert
+        window.location.href = '/login?error=not_activated';
+        return;
+      }
+
+      // CASE 2: User record doesn't exist yet (New Google Signup)
+      if (error && error.code === 'PGRST116') { 
+        // This is the "No rows found" error. 
+        // We let them stay logged into Auth, but don't give them a 'user' profile yet.
+        setSession(currentSession);
+        setUser(currentSession.user); 
+      } else {
+        // CASE 3: Active user found
+        setSession(currentSession);
+        setUser({ ...currentSession.user, ...profile });
+      }
+    } catch (err) {
+      console.error("Auth check failed", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
-    // 1. Check for an existing session on app load
     const initializeAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
@@ -40,11 +54,9 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
       }
     };
-
     initializeAuth();
 
-    // 2. Listen for Auth Changes (Login, Logout, Google OAuth Redirects)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         await checkUserStatus(session);
       } else {
@@ -55,14 +67,9 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => subscription.unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const value = {
-    session,
-    user,
-    signOut: () => supabase.auth.signOut(),
-  };
+  const value = { session, user, signOut: () => supabase.auth.signOut() };
 
   return (
     <AuthContext.Provider value={value}>
@@ -71,5 +78,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook for easy access
 export const useAuth = () => useContext(AuthContext);

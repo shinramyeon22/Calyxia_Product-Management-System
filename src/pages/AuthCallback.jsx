@@ -1,40 +1,53 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient'; // Adjusted to common path
+import { supabase } from '../supabaseClient';
 
 function AuthCallbackPage() {
   const navigate = useNavigate();
  
   useEffect(() => {
-    // Listen for the SIGNED_IN event triggered by the OAuth redirect
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        
-        // Run login guard: check record_status in the 'user' table
-        const { data: userRow } = await supabase
+    const handleAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        // 1. Check if user exists in your custom table
+        const { data: userRow, error } = await supabase
           .from('user')
           .select('record_status')
           .eq('userId', session.user.id)
           .single();
 
+        // 2. If no record exists, create one (Pending Approval)
+        if (error && error.code === 'PGRST116') {
+          await supabase.from('user').insert([
+            { 
+              userId: session.user.id, 
+              email: session.user.email, 
+              record_status: 'INACTIVE',
+              user_type: 'USER' 
+            }
+          ]);
+          await supabase.auth.signOut();
+          navigate('/login?error=not_activated');
+          return;
+        }
+
+        // 3. If record exists, check status
         if (userRow?.record_status === 'ACTIVE') {
-          // Success: User is active
           navigate('/products');
         } else {
-          // Failure: User is INACTIVE or record not found
           await supabase.auth.signOut();
           navigate('/login?error=not_activated');
         }
       }
-    });
+    };
 
-    // Cleanup subscription on unmount
-    return () => subscription.unsubscribe();
+    handleAuth();
   }, [navigate]);
 
   return (
-    <div className="flex h-screen items-center justify-center">
-      <p className="text-lg font-semibold">Signing you in...</p>
+    <div className="auth-container">
+      <p>Finalizing sign in...</p>
     </div>
   );
 }
