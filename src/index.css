@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --text: #9ca3af;
   --text-h: #f3f4f6;
@@ -151,5 +153,3 @@ h1, h2, h3 {
   height: 1px;
   background: var(--border);
 }
-
- 
