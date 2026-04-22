@@ -1,3 +1,9 @@
+# Calyxia_Product-Management-System
+For step-by-step instructions for team members, please refer to the Contribution.md
+
+Description for the Project will be updated on a later date. 
+
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

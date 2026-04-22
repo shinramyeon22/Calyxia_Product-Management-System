@@ -43,6 +43,14 @@ function App() {
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </AuthProvider>
+import Register from './pages/Register.jsx';
+import './App.css';
+
+function App() {
+  return (
+    <div className="App">
+      <Register />
+    </div>
   );
 }
 

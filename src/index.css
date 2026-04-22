@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --text: #9ca3af;
@@ -153,3 +156,6 @@ h1, h2, h3 {
   height: 1px;
   background: var(--border);
 }
+}
+
+ 
