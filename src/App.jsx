@@ -7,6 +7,8 @@ import AuthCallback from './pages/AuthCallback';
 import Products from './pages/Products';
 import AdminDashboard from './pages/AdminDashboard'; // 1. Add this import
 import './App.css';
+import ProductManagement from './pages/ProductManagement';
+import ProductDetails from './pages/ProductDetails';
 
 // Updated ProtectedRoute with Admin "Bouncer" logic
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -34,6 +36,8 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/products" element={<Products />} />
+      <Route path="/product/:id" element={<ProductDetails />} />
 
       <Route 
         path="/products" 
@@ -51,6 +55,12 @@ function App() {
           <ProtectedRoute requireAdmin={true}>
             <AdminDashboard />
           </ProtectedRoute>
+        } 
+      />
+
+    <Route 
+       path="/admin/products" 
+      element={<ProtectedRoute requireAdmin><ProductManagement /></ProtectedRoute>
         } 
       />
 

@@ -14,8 +14,7 @@ export default function Navbar() {
     }
   };
 
-  // 1. LOADING STATE: 
-  // Prevents the "Empty Navbar" flicker while role is being verified
+  // 1. LOADING STATE
   if (loading) {
     return (
       <nav className="bg-[#0f0f12] border-b border-[#1f1f23] p-4 h-16">
@@ -26,7 +25,7 @@ export default function Navbar() {
     );
   }
 
-  // 2. MAIN NAV STATE:
+  // 2. MAIN NAV STATE
   return (
     <nav className="relative z-50 bg-[#0f0f12] border-b border-[#1f1f23] p-4">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -40,21 +39,28 @@ export default function Navbar() {
               Products
             </Link>
 
-            {/* Admin Dashboard Link - Checks user type case-insensitively */}
+            {/* Admin Section */}
             {user?.user_type?.toUpperCase() === 'ADMIN' ? (
-              <Link 
-                to="/admin" 
-                className="text-purple-400 hover:text-purple-300 font-bold transition border-b border-purple-400/50"
-              >
-                Admin Dashboard
-              </Link>
+              <div className="flex gap-4 items-center border-l border-[#1f1f23] ml-4 pl-4">
+                <Link 
+                  to="/admin" 
+                  className="text-gray-400 hover:text-purple-300 text-sm transition"
+                >
+                  Users
+                </Link>
+                <Link 
+                  to="/admin/products" 
+                  className="text-purple-400 hover:text-purple-300 font-bold text-sm transition border-b border-purple-400/50"
+                >
+                  Inventory
+                </Link>
+              </div>
             ) : (
-              /* Tiny debug helper to see role if it's not working */
-              <span className="text-[10px] text-gray-700 self-center">
+              <span className="text-[10px] text-gray-700 self-center ml-4">
                 Role: {user?.user_type || 'NONE'}
               </span>
             )}
-          </div>
+          </div> {/* <--- Added this missing closing div for flex gap-6 */}
         </div>
 
         <div className="flex items-center gap-4">
