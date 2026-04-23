@@ -11,11 +11,10 @@
     "test": "vitest"
   },
   "dependencies": {
-    "react-router-dom": "^7.14.2",
     "@supabase/supabase-js": "^2.x.x",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-router-dom": "^7.14.0"
+    "react-router-dom": "^7.14.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -30,26 +29,6 @@
     "globals": "^17.4.0",
     "tailwindcss": "^4.2.4",
     "vite": "^8.0.4",
-  
-    "tailwindcss": "^4.2.2",
-    "vite": "^8.0.4",
     "vitest": "^4.1.4"
-  },
-  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
-  "main": "eslint.config.js",
-  "directories": {
-    "doc": "docs"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/shinramyeon22/Calyxia_Product-Management-System.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/shinramyeon22/Calyxia_Product-Management-System/issues"
-  },
-  "homepage": "https://github.com/shinramyeon22/Calyxia_Product-Management-System#readme"
+  }
 }
-

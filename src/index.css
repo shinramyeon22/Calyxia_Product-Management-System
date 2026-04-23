@@ -1,7 +1,6 @@
 @import "tailwindcss";
-@tailwindcss/preflight base;
-@tailwindutilities components;
-@tailwind utilities;
+
+/* Your existing code (like the border and padding shown in your error) goes below these */
 
 :root {
   --text: #9ca3af;
