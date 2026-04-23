@@ -3,42 +3,36 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import AuthCallback from './pages/AuthCallback';
-import Products from './pages/Products'; // Make sure this is imported
+import AuthCallback from './pages/AuthCallback'; // Keep this name consistent
+import Products from './pages/Products';
 import './App.css';
 
 // Protect routes component
 const ProtectedRoute = ({ children }) => {
-  const { session } = useAuth();
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return <div className="bg-black min-h-screen text-white p-10 text-center">Loading Session...</div>;
+  }
+
   if (!session) {
     return <Navigate to="/login" replace />;
   }
+
   return children;
 };
 
 function App() {
   return (
     <Routes>
-      {/* Public Routes */}
+      {/* 1. Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* OAuth Callback */}
+      {/* 2. OAuth Callback - Use only ONE and match the import name */}
       <Route path="/auth/callback" element={<AuthCallback />} />
 
-      {/* Protected Routes */}
-      <Route 
-        path="/dashboard" 
-        element={
-          <ProtectedRoute>
-            <div className="p-10">
-              <h1 className="text-2xl font-bold">Dashboard</h1>
-              <p>If you see this, you are logged in and ACTIVE.</p>
-            </div>
-          </ProtectedRoute>
-        } 
-      />
-      
+      {/* 3. Protected Routes */}
       <Route 
         path="/products" 
         element={
@@ -48,7 +42,11 @@ function App() {
         } 
       />
 
-      {/* Default Redirect */}
+      {/* 4. Default Redirects - The "Catch-Alls" */}
+      {/* If they hit the root URL, take them to products */}
+      <Route path="/" element={<Navigate to="/products" replace />} />
+      
+      {/* If they type a URL that doesn't exist, send them to login */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );

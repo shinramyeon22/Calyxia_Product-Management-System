@@ -35,21 +35,22 @@ export default function Login() {
 
   // Handle standard Email/Password Login
   const handleEmailLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
-    if (error) {
-      alert("Login Error: " + error.message);
-      setLoading(false);
-    } else {
-      navigate('/dashboard');
-    }
-  };
+  if (error) {
+    alert("Login Error: " + error.message);
+    setLoading(false);
+  } else {
+    // CHANGE THIS: from '/dashboard' to '/products'
+    navigate('/products'); 
+  }
+};
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-6">
