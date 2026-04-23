@@ -1,36 +1,23 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import neuLogo from "../assets/neu-logo.png";
+import neuLogo from '../assets/neu-logo.png'; 
 import './Auth.css';
 
-const Register = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
+export default function Register() {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', username: '', email: '', password: '' });
 
-  const handleGoogleSignIn = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: window.location.origin + '/AuthCallbackPage' },
-      });
-      if (error) throw error;
-    } catch (error) { alert(error.message); }
-  };
-
-  const handleEmailRegister = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    setLoading(true);
     const { error } = await supabase.auth.signUp({
-      email, password,
-      options: { emailRedirectTo: `${window.location.origin}/AuthCallbackPage` }
+      email: formData.email,
+      password: formData.password,
+      options: { data: { first_name: formData.firstName, last_name: formData.lastName, username: formData.username } }
     });
-    if (error) { alert(error.message); } 
-    else { setSuccessMsg('Registration successful! Access is pending Admin activation.'); }
-    setLoading(false);
-  };  
+    if (error) alert(error.message);
+    else { alert("Check your email!"); navigate('/login'); }
+  };
 
   return (
     <div className="auth-page-wrapper">
@@ -38,44 +25,29 @@ const Register = () => {
         <div className="logo-wrapper">
           <img src={neuLogo} alt="NEU Logo" className="main-logo" />
         </div>
-
         <div className="auth-box">
-          <h1 className="system-title">Create Account</h1>
-          <span className="system-subtitle">Join the Calyxia Network</span>
-
-          {successMsg ? (
-            <div className="success-banner" style={{color: '#d4af37', fontWeight: 'bold'}}>{successMsg}</div>
-          ) : (
-            <>
-              <button onClick={handleGoogleSignIn} className="btn-google">
-                <img src="https://authjs.dev/img/providers/google.svg" width="20" alt="G" />
-                Sign up with Google
-              </button>
-
-              <div className="divider"><span>OR</span></div>
-
-              <form onSubmit={handleEmailRegister}>
-                <div className="input-group">
-                  <input type="email" placeholder="Email" value={email} 
-                    onChange={e => setEmail(e.target.value)} className="auth-input" required />
-                </div>
-                <div className="input-group">
-                  <input type="password" placeholder="Password" value={password}
-                    onChange={e => setPassword(e.target.value)} className="auth-input" required />
-                </div>
-                <button type="submit" disabled={loading} className="btn-primary">
-                  {loading ? 'Processing...' : 'Register'}
-                </button>
-              </form>
-            </>
-          )}
-          <p className="mt-6 text-sm text-gray-500">
-            Already have an account? <Link to="/login" className="auth-link">Sign In</Link>
+          <h1 className="system-title">CALYXIA</h1>
+          <p className="system-subtitle">Create New Account</p>
+          <form onSubmit={handleRegister}>
+            <div className="input-row">
+              <input type="text" placeholder="FIRST NAME" className="auth-input" onChange={(e) => setFormData({...formData, firstName: e.target.value})} required />
+              <input type="text" placeholder="LAST NAME" className="auth-input" onChange={(e) => setFormData({...formData, lastName: e.target.value})} required />
+            </div>
+            <input type="text" placeholder="USERNAME" className="auth-input" onChange={(e) => setFormData({...formData, username: e.target.value})} required />
+            <input type="email" placeholder="EMAIL ADDRESS" className="auth-input" onChange={(e) => setFormData({...formData, email: e.target.value})} required />
+            <input type="password" placeholder="PASSWORD" className="auth-input" onChange={(e) => setFormData({...formData, password: e.target.value})} required />
+            <button type="submit" className="btn-primary">REGISTER ACCOUNT</button>
+          </form>
+          <div className="divider"><span>OR</span></div>
+          <button type="button" onClick={() => supabase.auth.signInWithOAuth({provider: 'google'})} className="btn-google">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="22" alt="G" />
+            REGISTER WITH GOOGLE
+          </button>
+          <p style={{ marginTop: '50px', color: '#94a3b8' }}>
+            ALREADY ENROLLED? <Link to="/login" style={{ color: '#d4af37', textDecoration: 'none', fontWeight: 'bold' }}>SIGN IN</Link>
           </p>
         </div>
       </div>
     </div>
   );
-};
-
-export default Register;
+}

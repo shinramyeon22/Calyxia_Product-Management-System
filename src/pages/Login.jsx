@@ -18,54 +18,27 @@ export default function Login() {
     else { navigate('/dashboard'); }
   };
 
-  const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
-    if (error) alert(error.message);
-  };
-
   return (
     <div className="auth-page-wrapper">
       <div className="auth-container">
         <div className="logo-wrapper">
           <img src={neuLogo} alt="NEU Logo" className="main-logo" />
         </div>
-
         <div className="auth-box">
           <h1 className="system-title">CALYXIA</h1>
-          <p className="system-subtitle">Product Management System</p>
-
+          <p className="system-subtitle">Management Enterprise</p>
           <form onSubmit={handleEmailLogin}>
-            <input 
-              type="email" 
-              placeholder="EMAIL ADDRESS" 
-              className="auth-input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required 
-            />
-            <input 
-              type="password" 
-              placeholder="PASSWORD" 
-              className="auth-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required 
-            />
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? "AUTHENTICATING..." : "SIGN IN"}
-            </button>
+            <input type="email" placeholder="IDENTITY / EMAIL" className="auth-input" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input type="password" placeholder="ACCESS KEY / PASSWORD" className="auth-input" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <button type="submit" className="btn-primary" disabled={loading}>ENTER SYSTEM</button>
           </form>
-
           <div className="divider"><span>OR</span></div>
-
-          {/* THE GOOGLE BUTTON */}
-          <button type="button" onClick={handleGoogleLogin} className="btn-google">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20" alt="G" />
+          <button type="button" onClick={() => supabase.auth.signInWithOAuth({provider: 'google'})} className="btn-google">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="24" alt="G" />
             CONTINUE WITH GOOGLE
           </button>
-
-          <p style={{ marginTop: '40px', color: '#94a3b8' }}>
-            NEW TO THE SYSTEM? <Link to="/register" style={{ color: '#d4af37', textDecoration: 'none', fontWeight: 'bold' }}>REGISTER NOW</Link>
+          <p style={{ marginTop: '50px', color: '#94a3b8' }}>
+            NEW ENTRANT? <Link to="/register" style={{ color: '#d4af37', textDecoration: 'none', fontWeight: 'bold' }}>REGISTER NOW</Link>
           </p>
         </div>
       </div>
