@@ -4,51 +4,47 @@ import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AuthCallback from './pages/AuthCallback';
-import Products from './pages/Products'; // Make sure this is imported
+import AppShell from './components/AppShell';
+import Dashboard from './pages/Dashboard';
 import './App.css';
 
-// Protect routes component
+// ── Protected route wrapper ────────────────────────────────
 const ProtectedRoute = ({ children }) => {
-  const { session } = useAuth();
-  if (!session) {
-    return <Navigate to="/login" replace />;
-  }
+  const { session, loading } = useAuth();
+  if (loading) return null;
+  if (!session) return <Navigate to="/login" replace />;
   return children;
 };
 
+// ── App ───────────────────────────────────────────────────
 function App() {
   return (
     <Routes>
-      {/* Public Routes */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-
-      {/* OAuth Callback */}
+      {/* Public */}
+      <Route path="/login"         element={<Login />} />
+      <Route path="/register"      element={<Register />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
 
-      {/* Protected Routes */}
-      <Route 
-        path="/dashboard" 
+      {/* Shell-wrapped protected pages */}
+      <Route
         element={
           <ProtectedRoute>
-            <div className="p-10">
-              <h1 className="text-2xl font-bold">Dashboard</h1>
-              <p>If you see this, you are logged in and ACTIVE.</p>
-            </div>
+            <AppShell />
           </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/products" 
-        element={
-          <ProtectedRoute>
-            <Products />
-          </ProtectedRoute>
-        } 
-      />
+        }
+      >
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<Dashboard />} />
 
-      {/* Default Redirect */}
+        {/* Add future pages here */}
+        {/* <Route path="/projects" element={<Projects />} /> */}
+        {/* <Route path="/tasks"    element={<Tasks />} />    */}
+        {/* <Route path="/reports"  element={<Reports />} />  */}
+        {/* <Route path="/users"    element={<Users />} />    */}
+        {/* <Route path="/settings" element={<Settings />} /> */}
+      </Route>
+
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
