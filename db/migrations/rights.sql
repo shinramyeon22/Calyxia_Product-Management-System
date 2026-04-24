@@ -55,7 +55,7 @@ ADD COLUMN stamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 
 
-Magkahiwalay na script ito —-------------------------------------------------------------
+
 
 
 
