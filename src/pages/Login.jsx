@@ -34,12 +34,22 @@ export default function Login() {
   };
 
   const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
+    setLoading(true);
+    setErrorMsg('');
+
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { prompt: 'select_account' },
       },
     });
+
+    if (error) {
+      console.error('Google sign-in error:', error);
+      setErrorMsg(error.message || 'Unable to start Google sign-in.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -82,13 +92,13 @@ export default function Login() {
 
           <div className="divider"><span>OR</span></div>
 
-          <button type="button" onClick={handleGoogleLogin} className="btn-google">
+          <button type="button" onClick={handleGoogleLogin} className="btn-google" disabled={loading}>
             <img
               src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
               width="24"
               alt="G"
             />
-            CONTINUE WITH GOOGLE
+            {loading ? 'REDIRECTING…' : 'CONTINUE WITH GOOGLE'}
           </button>
 
           <p style={{ marginTop: '50px', color: '#94a3b8' }}>

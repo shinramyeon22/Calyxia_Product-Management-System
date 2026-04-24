@@ -9,7 +9,18 @@ function AuthCallbackPage() {
 
   useEffect(() => {
     const handleAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      let session = null;
+
+      const { data: sessionData, error: authError } = await supabase.auth.getSessionFromUrl();
+      if (authError) {
+        console.log('AUTH CALLBACK ERROR:', authError);
+      }
+
+      session = sessionData?.session;
+      if (!session) {
+        const { data: currentSession } = await supabase.auth.getSession();
+        session = currentSession?.session;
+      }
 
       console.log('SESSION:', session);
 
