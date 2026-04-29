@@ -1,148 +1,138 @@
-// src/pages/Login.jsx 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Added missing import
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { useAuth } from "../context/AuthContext.jsx";
 
-export default function Login() {
-  const navigate = useNavigate();
-  const { error: authError } = useAuth(); // renamed to avoid conflict with local error variables
+const Login = () => {
 
-  // Form State
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  // Check for URL error parameters (e.g., ?error=not_activated)
-  const params = new URLSearchParams(window.location.search);
-  const errorParam = params.get('error');
-
-  // Handle Google OAuth Login
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    if (error) {
-      alert("Google Auth Error: " + error.message);
-      setLoading(false);
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline',
+          },
+          redirectTo: `${window.location.origin}/auth/callback`,
+        }
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error("Auth Error:", error.message);
     }
   };
 
-  // Handle standard Email/Password Login
-  const handleEmailLogin = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    alert("Login Error: " + error.message);
-    setLoading(false);
-  } else {
-    // CHANGE THIS: from '/dashboard' to '/products'
-    navigate('/products'); 
-  }
-};
-
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-6">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen w-full flex bg-[#050505] overflow-hidden selection:bg-amber-500/30">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400..900;1,400..900&family=Montserrat:wght@100;200;300;400;500;600&display=swap');
+        
+        .serif-font { font-family: 'Bodoni Moda', serif; }
+        .sans-font { font-family: 'Montserrat', sans-serif; }
+        
+        .login-input::placeholder {
+          color: rgba(212, 175, 55, 0.3);
+          letter-spacing: 0.3em;
+        }
 
-        {/* Branding */}
-        <div className="text-center mb-10">
-          <div className="mx-auto w-14 h-14 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-900/30">
-            <span className="text-white text-2xl font-bold">C</span>
-          </div>
-          <h1 className="mt-6 text-3xl font-semibold text-white tracking-tight">Calyxia</h1>
-          <p className="text-gray-400 mt-2 text-sm">Product Management System</p>
+        .gold-glow:focus {
+          box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
+          border-color: #d4af37 !important;
+        }
+      `}</style>
+
+      {/* LEFT SIDE: Extravagant Visual Pane */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-[#0a0a0c] items-center justify-center overflow-hidden border-r border-white/5">
+        <div className="absolute inset-0 opacity-60">
+          <img 
+            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070&auto=format&fit=crop" 
+            alt="Showroom" 
+            className="w-full h-full object-cover grayscale-[40%]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-[#0d1a15]"></div>
         </div>
+        
+        <div className="relative z-10 text-center px-20">
+          <h2 className="serif-font text-8xl italic text-white/10 select-none">CX</h2>
+          <div className="h-[1px] w-20 bg-amber-500/40 mx-auto my-8"></div>
+          <p className="sans-font text-[10px] tracking-[1em] text-amber-500/60 uppercase font-light">The Private Collection</p>
+        </div>
+      </div>
 
-        {/* Card */}
-        <div className="bg-[#0f0f12] border border-[#1f1f23] rounded-2xl p-8 shadow-2xl">
+      {/* RIGHT SIDE: Management Portal */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-24 bg-[#0d1a15]">
+        <div className="w-full max-w-[460px] flex flex-col items-center">
           
-          <div className="mb-6">
-            <h2 className="text-xl text-white font-medium">Sign in</h2>
-            <p className="text-gray-500 text-sm mt-1">Access your workspace</p>
+          {/* Brand Identity */}
+          <div className="text-center mb-16">
+            <h1 className="serif-font text-7xl italic font-light text-white mb-2">Calyxia</h1>
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <div className="h-[1px] w-8 bg-amber-500/30"></div>
+              <span className="sans-font text-[9px] tracking-[0.5em] text-amber-500 uppercase font-medium">Management Enterprise</span>
+              <div className="h-[1px] w-8 bg-amber-500/30"></div>
+            </div>
           </div>
 
-          {/* Alert Messages */}
-          {authError && (
-            <div className="bg-red-900/20 border border-red-500/50 text-red-400 px-4 py-2 rounded-lg mb-4 text-sm">
-              {authError}
+          {/* Form Portal */}
+          <form className="w-full space-y-6" onSubmit={(e) => e.preventDefault()}>
+            <div className="space-y-4">
+              <div className="relative group">
+                <input 
+                  type="email" 
+                  placeholder="IDENTITY / EMAIL" 
+                  className="login-input w-full bg-black/40 border border-white/5 py-5 px-8 rounded-sm text-white sans-font text-[10px] tracking-widest outline-none transition-all gold-glow"
+                />
+              </div>
+              <div className="relative group">
+                <input 
+                  type="password" 
+                  placeholder="ACCESS KEY / PASSWORD" 
+                  className="login-input w-full bg-black/40 border border-white/5 py-5 px-8 rounded-sm text-white sans-font text-[10px] tracking-widest outline-none transition-all gold-glow"
+                />
+              </div>
             </div>
-          )}
-          {errorParam === 'not_activated' && (
-            <div className="bg-yellow-900/20 border border-yellow-500/50 text-yellow-400 px-4 py-2 rounded-lg mb-4 text-sm">
-              Account not yet active. Please wait for admin approval.
-            </div>
-          )}
 
-          {/* Google Button */}
-          <button
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white text-black rounded-lg font-medium hover:bg-gray-200 transition duration-200 disabled:opacity-60"
-          >
-            <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-              <path fill="#EA4335" d="M24 9.5c3.54 0 6.72 1.22 9.21 3.6l6.85-6.85C35.9 2.36 30.41 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.2C12.43 13.11 17.74 9.5 24 9.5z" />
-              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.43-4.55H24v9.02h12.94c-.56 2.98-2.24 5.52-4.77 7.22l7.3 5.66c4.27-3.92 6.51-9.72 6.51-17.35z" />
-              <path fill="#FBBC05" d="M10.54 28.43a14.5 14.5 0 0 1 0-9.25l-7.98-6.2A24 24 0 0 0 0 24c0 3.84.91 7.47 2.56 10.22l7.98-5.79z" />
-              <path fill="#34A853" d="M24 48c6.41 0 11.8-2.12 15.73-5.77l-7.3-5.66c-2.03 1.36-4.63 2.17-8.43 2.17-6.26 0-11.57-3.61-13.46-8.77l-7.98 5.79C6.51 42.62 14.62 48 24 48z" />
-            </svg>
-            {loading ? "Connecting..." : "Continue with Google"}
-          </button>
-
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-[#1f1f23]" />
-            <span className="text-xs text-gray-500">OR</span>
-            <div className="flex-1 h-px bg-[#1f1f23]" />
-          </div>
-
-          {/* Email Form */}
-          <form onSubmit={handleEmailLogin} className="space-y-4">
-            <input
-              type="email"
-              placeholder="Email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-black border border-[#1f1f23] text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-black border border-[#1f1f23] text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition duration-200 shadow-lg shadow-purple-900/20 disabled:opacity-60"
+            <button 
+              type="submit" 
+              className="w-full bg-transparent text-amber-500 border border-amber-500/40 py-5 rounded-sm sans-font text-[10px] font-bold tracking-[0.4em] transition-all hover:bg-amber-500 hover:text-[#0d1a15] hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] active:scale-[0.98]"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              VALIDATE ACCESS
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Don’t have an account?{" "}
-            <a href="/register" className="text-purple-400 hover:text-purple-300">Register</a>
-          </p>
-        </div>
+          <div className="flex items-center w-full my-12">
+            <div className="flex-grow border-t border-white/5"></div>
+            <span className="mx-6 sans-font text-[8px] text-zinc-600 tracking-[0.4em] font-bold">OR</span>
+            <div className="flex-grow border-t border-white/5"></div>
+          </div>
 
-        <p className="text-center text-xs text-gray-600 mt-6">
-          Secure login powered by Supabase
-        </p>
+          {/* Social Access */}
+          <button 
+            onClick={handleGoogleSignIn} 
+            type="button" 
+            className="w-full bg-white text-black py-5 rounded-sm flex items-center justify-center gap-4 transition-all hover:bg-zinc-200 active:scale-[0.98] sans-font text-[10px] font-bold tracking-widest"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+            </svg>
+            GOOGLE AUTHENTICATION
+          </button>
+
+          <div className="mt-16 text-center">
+            <p className="sans-font text-[9px] text-zinc-500 tracking-[0.2em] uppercase">
+              Unregistered Identity? 
+              <Link to="/register" className="text-amber-500 font-bold ml-2 hover:underline">
+                Register Entry
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default Login;

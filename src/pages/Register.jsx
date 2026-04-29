@@ -1,126 +1,175 @@
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { Link } from 'react-router-dom';
 
 const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
+  const navigate = useNavigate();
 
-  const handleGoogleSignIn = async () => {
+  // Functional Logic
+  const handleRegister = async (e) => {
+    e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
         options: {
-          // MUST match your Login.jsx and App.jsx route
-          redirectTo: `${window.location.origin}/auth/callback`,
+          data: { full_name: fullName },
         },
       });
       if (error) throw error;
+      alert('Registration successful! Please check your email for verification.');
+      navigate('/login');
     } catch (error) {
       alert(error.message);
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleEmailRegister = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setSuccessMsg(''); // Clear previous messages
-
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { 
-      emailRedirectTo: `${window.location.origin}/auth/callback` 
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline',
+          },
+          redirectTo: `${window.location.origin}/auth/callback`,
+        }
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error("Auth Error:", error.message);
     }
-  });
-
-  if (error) {
-    // This handles "User already registered" or "Password too short"
-    alert("Registration Error: " + error.message);
-  } else if (data.user && data.session === null) {
-    // This happens if email confirmation is ON
-    setSuccessMsg('Success! Please check your email to confirm your account.');
-  } else {
-    // This happens if email confirmation is OFF
-    setSuccessMsg('Account created! Redirecting to login...');
-    setTimeout(() => navigate('/login'), 2000);
-  }
-  setLoading(false);
-};
+  };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-6">
-      <div className="w-full max-w-md">
-        {/* Branding */}
-        <div className="text-center mb-10">
-          <div className="mx-auto w-14 h-14 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-900/30">
-            <span className="text-white text-2xl font-bold">C</span>
-          </div>
-          <h1 className="mt-6 text-3xl font-semibold text-white tracking-tight">Calyxia</h1>
-          <p className="text-gray-400 mt-2 text-sm">Join the workspace</p>
+    <div className="min-h-screen w-full flex bg-[#050505] overflow-hidden selection:bg-amber-500/30">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400..900;1,400..900&family=Montserrat:wght@100;200;300;400;500;600&display=swap');
+        
+        .serif-font { font-family: 'Bodoni Moda', serif; }
+        .sans-font { font-family: 'Montserrat', sans-serif; }
+        
+        .registry-input::placeholder {
+          color: rgba(212, 175, 55, 0.3);
+          letter-spacing: 0.3em;
+        }
+
+        .gold-glow:focus {
+          box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
+          border-color: #d4af37 !important;
+        }
+
+        .scroll-hide::-webkit-scrollbar { display: none; }
+      `}</style>
+
+      {/* LEFT SIDE: Boutique Visual Pane */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-[#0a0a0c] items-center justify-center overflow-hidden border-r border-white/5">
+        <div className="absolute inset-0 opacity-60">
+          <img 
+            src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop" 
+            alt="Boutique Fabric" 
+            className="w-full h-full object-cover grayscale-[20%]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-l from-[#0d1a15] via-transparent to-black/80"></div>
         </div>
+        
+        <div className="relative z-10 text-center px-20">
+          <h2 className="serif-font text-8xl italic text-white/10 select-none">CC</h2>
+          <div className="h-[1px] w-20 bg-amber-500/40 mx-auto my-8"></div>
+          <p className="sans-font text-[10px] tracking-[1em] text-amber-500/60 uppercase font-light">Identity Registry</p>
+        </div>
+      </div>
 
-        {/* Card */}
-        <div className="bg-[#0f0f12] border border-[#1f1f23] rounded-2xl p-8 shadow-2xl">
-          {successMsg ? (
-            <div className="bg-green-900/20 border border-green-500/50 text-green-400 px-4 py-3 rounded-lg text-center">
-              {successMsg}
+      {/* RIGHT SIDE: Registry Portal */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-24 bg-[#0d1a15] overflow-y-auto scroll-hide">
+        <div className="w-full max-w-[460px] flex flex-col items-center py-10">
+          
+          {/* Brand Identity */}
+          <div className="text-center mb-12">
+            <h1 className="serif-font text-7xl italic font-light text-white mb-2">Calyxia</h1>
+            <div className="flex items-center justify-center gap-4">
+              <div className="h-[1px] w-8 bg-amber-500/30"></div>
+              <span className="sans-font text-[9px] tracking-[0.5em] text-amber-500 uppercase font-medium">Create Identity</span>
+              <div className="h-[1px] w-8 bg-amber-500/30"></div>
             </div>
-          ) : (
-            <>
-              <h2 className="text-xl text-white font-medium mb-6">Create account</h2>
-              
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white text-black rounded-lg font-medium hover:bg-gray-200 transition duration-200 disabled:opacity-60"
-              >
-                <img src="https://authjs.dev/img/providers/google.svg" width="18" alt="Google" />
-                Continue with Google
-              </button>
+          </div>
 
-              <div className="flex items-center gap-3 my-6">
-                <div className="flex-1 h-px bg-[#1f1f23]" />
-                <span className="text-xs text-gray-500">OR</span>
-                <div className="flex-1 h-px bg-[#1f1f23]" />
-              </div>
+          {/* Form Portal */}
+          <form className="w-full space-y-5" onSubmit={handleRegister}>
+            <div className="space-y-4">
+              <input 
+                type="text" 
+                placeholder="IDENTITY NAME" 
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="registry-input w-full bg-black/40 border border-white/5 py-5 px-8 rounded-sm text-white sans-font text-[10px] tracking-widest outline-none transition-all gold-glow"
+              />
+              <input 
+                type="email" 
+                placeholder="REGISTRY EMAIL" 
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="registry-input w-full bg-black/40 border border-white/5 py-5 px-8 rounded-sm text-white sans-font text-[10px] tracking-widest outline-none transition-all gold-glow"
+              />
+              <input 
+                type="password" 
+                placeholder="MASTER KEY / PASSWORD" 
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="registry-input w-full bg-black/40 border border-white/5 py-5 px-8 rounded-sm text-white sans-font text-[10px] tracking-widest outline-none transition-all gold-glow"
+              />
+            </div>
 
-              <form onSubmit={handleEmailRegister} className="space-y-4">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg bg-black border border-[#1f1f23] text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition"
-                />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg bg-black border border-[#1f1f23] text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition"
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition duration-200 disabled:opacity-60"
-                >
-                  {loading ? "Processing..." : "Register"}
-                </button>
-              </form>
-            </>
-          )}
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full bg-transparent text-amber-500 border border-amber-500/40 py-5 rounded-sm sans-font text-[10px] font-bold tracking-[0.4em] transition-all hover:bg-amber-500 hover:text-[#0d1a15] hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] active:scale-[0.98]"
+            >
+              {loading ? 'ESTABLISHING...' : 'ESTABLISH IDENTITY'}
+            </button>
+          </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Already have an account?{" "}
-            <Link to="/login" className="text-purple-400 hover:text-purple-300">Sign in</Link>
-          </p>
+          {/* Separator */}
+          <div className="flex items-center w-full my-10">
+            <div className="flex-grow border-t border-white/5"></div>
+            <span className="mx-6 sans-font text-[8px] text-zinc-600 tracking-[0.4em] font-bold uppercase">External Auth</span>
+            <div className="flex-grow border-t border-white/5"></div>
+          </div>
+
+          {/* Google Sign In Button */}
+          <button 
+            onClick={handleGoogleSignIn} 
+            type="button" 
+            className="w-full bg-white text-black py-5 rounded-sm flex items-center justify-center gap-4 transition-all hover:bg-zinc-200 active:scale-[0.98] sans-font text-[10px] font-bold tracking-widest"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+            </svg>
+            REGISTER WITH GOOGLE
+          </button>
+
+          <div className="text-center mt-12">
+            <p className="sans-font text-[9px] text-zinc-500 tracking-[0.2em] uppercase">
+              Already Identified? 
+              <Link to="/login" className="text-amber-500 font-bold ml-2 hover:underline">
+                Enter Portal
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
