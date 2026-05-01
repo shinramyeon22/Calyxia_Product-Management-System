@@ -14,62 +14,35 @@ export default function Navbar() {
     }
   };
 
-  // 1. LOADING STATE
   if (loading) {
-    return (
-      <nav className="bg-[#0f0f12] border-b border-[#1f1f23] p-4 h-16">
-        <div className="max-w-7xl mx-auto flex justify-between items-center opacity-20">
-          <div className="h-6 w-24 bg-gray-700 rounded animate-pulse"></div>
-        </div>
-      </nav>
-    );
+    return <nav className="fixed top-0 left-0 right-0 z-50 h-20 bg-black/90 backdrop-blur-md border-b border-white/10" />;
   }
 
-  // 2. MAIN NAV STATE
   return (
-    <nav className="relative z-50 bg-[#0f0f12] border-b border-[#1f1f23] p-4">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-8">
-          <Link to="/products" className="text-xl font-bold text-white hover:text-purple-400 transition">
-            Calyxia
-          </Link>
-          
-          <div className="flex gap-6">
-            <Link to="/products" className="text-gray-400 hover:text-white transition cursor-pointer">
-              Products
-            </Link>
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-lg border-b border-white/10">
+      <div className="max-w-7xl mx-auto px-8 py-7 flex justify-between items-center">
+        <Link to="/products" className="serif-font text-4xl italic tracking-tighter hover:text-[#d4af37] transition-colors">
+          Calyxia
+        </Link>
 
-            {/* Admin Section */}
-            {user?.user_type?.toUpperCase() === 'ADMIN' ? (
-              <div className="flex gap-4 items-center border-l border-[#1f1f23] ml-4 pl-4">
-                <Link 
-                  to="/admin" 
-                  className="text-gray-400 hover:text-purple-300 text-sm transition"
-                >
-                  Users
-                </Link>
-                <Link 
-                  to="/admin/products" 
-                  className="text-purple-400 hover:text-purple-300 font-bold text-sm transition border-b border-purple-400/50"
-                >
-                  Inventory
-                </Link>
-              </div>
-            ) : (
-              <span className="text-[10px] text-gray-700 self-center ml-4">
-                Role: {user?.user_type || 'NONE'}
-              </span>
-            )}
-          </div> {/* <--- Added this missing closing div for flex gap-6 */}
+        <div className="flex items-center gap-10 text-sm tracking-[0.125em] uppercase">
+          <Link to="/products" className="hover:text-[#d4af37] transition-colors">Collection</Link>
+
+          {user?.user_type === 'ADMIN' && (
+            <div className="flex items-center gap-8 border-l border-white/10 pl-8">
+              <Link to="/admin" className="hover:text-[#d4af37] transition-colors">Users</Link>
+              <Link to="/admin/products" className="text-[#d4af37] font-medium border-b border-[#d4af37] pb-0.5">Inventory</Link>
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-gray-500">{user?.email}</span>
+        <div className="flex items-center gap-6">
+          {user && <span className="text-xs text-white/50 tracking-widest hidden md:block">{user.email}</span>}
           <button 
-            onClick={handleLogout} 
-            className="text-gray-400 hover:text-red-400 text-sm transition cursor-pointer"
+            onClick={handleLogout}
+            className="px-6 py-3 text-xs tracking-widest border border-white/30 hover:border-[#d4af37] hover:text-[#d4af37] transition-all"
           >
-            Logout
+            SIGN OUT
           </button>
         </div>
       </div>

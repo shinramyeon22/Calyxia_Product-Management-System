@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import Navbar from '../components/Navbar';
-// 1. CRITICAL: You must import Link to make navigation work
 import { Link } from 'react-router-dom'; 
 
 export default function Products() {
@@ -18,43 +17,48 @@ export default function Products() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="calyxia-boutique-env min-h-screen bg-[#050505] text-white">
       <Navbar />
-      <div className="max-w-7xl mx-auto p-8">
-        <h1 className="text-4xl font-bold mb-8">Available Tech</h1>
-        
+
+      <header className="pt-32 pb-20 text-center border-b border-white/10">
+        <span className="text-[#d4af37] text-xs tracking-[0.5em] uppercase">The Private Collection</span>
+        <h1 className="serif-font text-7xl md:text-8xl italic mt-6 tracking-tighter">Calyxia Collections</h1>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-6 py-20">
         {loading ? (
-          <p>Loading catalog...</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map((p) => (
-              <div key={p.id} className="bg-[#0f0f12] border border-[#1f1f23] p-4 rounded-xl hover:border-purple-500 transition group">
-                <div className="aspect-square bg-gray-900 rounded-lg mb-4 overflow-hidden">
-                  {p.image_url ? (
-                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-700 text-xs text-center p-4">No Image Available</div>
-                  )}
-                </div>
-                <h2 className="text-xl font-bold">{p.name}</h2>
-                <p className="text-gray-400 text-sm mb-4 line-clamp-2">{p.description}</p>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-purple-400 font-bold text-lg">${p.price}</span>
-                  
-                  {/* 2. FIXED: Changed <button> to <Link> and added the 'to' path */}
-                  <Link 
-                    to={`/product/${p.id}`} 
-                    className="bg-white text-black text-xs px-4 py-2 rounded-full font-bold hover:bg-purple-400 transition"
-                  >
-                    View Details
-                  </Link>
-                </div>
-              </div>
-            ))}
+          <div className="flex justify-center py-32">
+            <div className="text-[#d4af37] text-xs tracking-[0.5em]">CURATING ASSETS...</div>
           </div>
+        ) : (
+          products.map((p, index) => (
+            <section key={p.id} className={`flex flex-col lg:flex-row gap-16 mb-32 ${index % 2 === 1 ? 'lg:flex-row-reverse' : ''}`}>
+              <div className="lg:w-3/5 bg-black border border-white/10 p-8">
+                <img 
+                  src={p.image_url || 'https://via.placeholder.com/1200x800/111/ddd?text=Calyxia+Asset'} 
+                  alt={p.name} 
+                  className="w-full h-auto object-contain"
+                />
+              </div>
+
+              <div className="lg:w-2/5 flex flex-col justify-center">
+                <span className="text-xs tracking-widest text-white/50">SELECTION NO. 0{index + 1}</span>
+                <h2 className="serif-font text-5xl md:text-6xl italic mt-6 mb-8 leading-none">{p.name}</h2>
+                <p className="text-white/70 leading-relaxed mb-10">{p.description}</p>
+                
+                <div className="text-4xl text-[#d4af37] mb-12">₱{p.price.toLocaleString()}</div>
+
+                <Link 
+                  to={`/product/${p.id}`} 
+                  className="inline-block border border-[#d4af37] text-[#d4af37] px-12 py-5 text-xs tracking-widest hover:bg-[#d4af37] hover:text-black transition-all"
+                >
+                  EXPLORE PIECE
+                </Link>
+              </div>
+            </section>
+          ))
         )}
-      </div>
+      </main>
     </div>
   );
 }

@@ -4,9 +4,9 @@ import Navbar from '../components/Navbar';
 
 export default function ProductManagement() {
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);        // ← Now properly used
   const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState(null); // Track if we are editing
+  const [editingId, setEditingId] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -32,7 +32,6 @@ export default function ProductManagement() {
     setLoading(false);
   }
 
-  // PREPARE FOR EDIT
   const openEditModal = (product) => {
     setFormData({
       name: product.name,
@@ -46,37 +45,40 @@ export default function ProductManagement() {
   };
 
   async function handleSubmit(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  // 1. URL VALIDATION LOGIC
-  const urlPattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
-    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
-    '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
-    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
-    '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
-    '(\\#[-a-z\\d%_.~+=-]*)?$','i'); // fragment locator
+    const urlPattern = new RegExp('^(https?:\\/\\/)?'+ 
+      '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+
+      '((\\d{1,3}\\.){3}\\d{1,3}))'+
+      '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+
+      '(\\?[;&a-z\\d%_.~+=-]*)?'+
+      '(\\#[-a-z\\d%_.~+=-]*)?$','i');
 
-  // If there's text in image_url, check if it's a valid pattern
-  if (formData.image_url.trim() !== "" && !urlPattern.test(formData.image_url)) {
-    alert("Please enter a valid Image URL (e.g., https://example.com/image.jpg) or leave it blank.");
-    return; // STOP the function here
+    if (formData.image_url.trim() !== "" && !urlPattern.test(formData.image_url)) {
+      alert("Please enter a valid Image URL or leave it blank.");
+      return;
+    }
+
+    const productData = {
+      name: formData.name,
+      description: formData.description || null,
+      price: parseFloat(formData.price),
+      stock_quantity: parseInt(formData.stock_quantity) || 0,
+      image_url: formData.image_url.trim() === "" ? null : formData.image_url
+    };
+
+    let error;
+    if (editingId) {
+      ({ error } = await supabase.from('product').update(productData).eq('id', editingId));
+    } else {
+      ({ error } = await supabase.from('product').insert([productData]));
+    }
+
+    if (error) alert(error.message);
+    else {
+      finishSubmit();
+    }
   }
-
-  const productData = {
-    name: formData.name,
-    description: formData.description || null,
-    price: parseFloat(formData.price),
-    stock_quantity: parseInt(formData.stock_quantity) || 0,
-    image_url: formData.image_url.trim() === "" ? null : formData.image_url
-  };
-
-  // ... (rest of your insert/update logic)
-  if (editingId) {
-     // update call...
-  } else {
-     // insert call...
-  }
-}
 
   function finishSubmit() {
     setShowModal(false);
@@ -86,74 +88,113 @@ export default function ProductManagement() {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm("Delete this product?")) return;
-    const { error: deleteError } = await supabase.from('product').delete().eq('id', id);
-    if (deleteError) alert(deleteError.message);
+    if (!window.confirm("Delete this asset?")) return;
+    const { error } = await supabase.from('product').delete().eq('id', id);
+    if (error) alert(error.message);
     else fetchProducts();
   }
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#050505] text-white pt-20">
+        <Navbar />
+        <div className="flex items-center justify-center h-[70vh]">
+          <div className="text-center">
+            <div className="w-8 h-[1px] bg-[#d4af37] mx-auto mb-6 animate-pulse"></div>
+            <p className="text-[#d4af37] text-xs tracking-[0.5em]">LOADING INVENTORY...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[#050505] text-white pt-20">
       <Navbar />
       
-      <div className="max-w-6xl mx-auto p-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Inventory</h1>
+      <div className="max-w-7xl mx-auto px-8 py-16">
+        <div className="flex justify-between items-end mb-12">
+          <div>
+            <span className="block text-[#d4af37] text-xs tracking-[0.5em] uppercase">Institutional Control</span>
+            <h1 className="serif-font text-6xl italic tracking-tighter">Inventory Vault</h1>
+          </div>
           <button 
-            onClick={() => { setEditingId(null); setFormData({name:'', description:'', price:'', stock_quantity:'', image_url:''}); setShowModal(true); }}
-            className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg font-bold transition"
+            onClick={() => { 
+              setEditingId(null); 
+              setFormData({name:'', description:'', price:'', stock_quantity:'', image_url:''}); 
+              setShowModal(true); 
+            }}
+            className="border border-[#d4af37] text-[#d4af37] px-10 py-4 text-xs tracking-widest hover:bg-[#d4af37] hover:text-black transition-all duration-300"
           >
-            + Add Product
+            + ADD NEW ASSET
           </button>
         </div>
 
-        {/* --- DYNAMIC MODAL (ADD or EDIT) --- */}
+        {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-            <div className="bg-[#0f0f12] border border-[#1f1f23] w-full max-w-md p-6 rounded-2xl">
-              <h2 className="text-xl font-bold mb-4">
-                {editingId ? 'Edit Product' : 'Add New Product'}
+          <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-6">
+            <div className="bg-[#0a0a0c] border border-white/10 w-full max-w-md p-10 rounded-none">
+              <h2 className="serif-font text-4xl italic mb-8">
+                {editingId ? 'Edit Asset' : 'New Asset'}
               </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-8">
                 <input 
-                  type="text" placeholder="Product Name" required value={formData.name}
-                  className="w-full bg-black border border-[#1f1f23] p-3 rounded-lg outline-none focus:border-purple-500"
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  type="text" 
+                  placeholder="ASSET NAME" 
+                  required 
+                  value={formData.name}
+                  className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]" 
+                  onChange={(e) => setFormData({...formData, name: e.target.value})} 
                 />
+
                 <textarea 
-                  placeholder="Description" value={formData.description}
-                  className="w-full bg-black border border-[#1f1f23] p-3 rounded-lg outline-none focus:border-purple-500 h-24"
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                ></textarea>
-                <div className="grid grid-cols-2 gap-4">
+                  placeholder="DESCRIPTION" 
+                  value={formData.description}
+                  className="w-full bg-transparent border-b border-white/20 pb-3 h-28 outline-none focus:border-[#d4af37]"
+                  onChange={(e) => setFormData({...formData, description: e.target.value})} 
+                />
+
+                <div className="grid grid-cols-2 gap-8">
                   <input 
-                    type="number" placeholder="Price" required value={formData.price}
-                    className="bg-black border border-[#1f1f23] p-3 rounded-lg outline-none focus:border-purple-500"
-                    onChange={(e) => setFormData({...formData, price: e.target.value})}
+                    type="number" 
+                    placeholder="PRICE" 
+                    required 
+                    value={formData.price}
+                    className="w-full bg-transparent border-b border-white/20 pb-3 outline-none focus:border-[#d4af37]"
+                    onChange={(e) => setFormData({...formData, price: e.target.value})} 
                   />
                   <input 
-                    type="number" placeholder="Stock" required value={formData.stock_quantity}
-                    className="bg-black border border-[#1f1f23] p-3 rounded-lg outline-none focus:border-purple-500"
-                    onChange={(e) => setFormData({...formData, stock_quantity: e.target.value})}
+                    type="number" 
+                    placeholder="STOCK" 
+                    required 
+                    value={formData.stock_quantity}
+                    className="w-full bg-transparent border-b border-white/20 pb-3 outline-none focus:border-[#d4af37]"
+                    onChange={(e) => setFormData({...formData, stock_quantity: e.target.value})} 
                   />
                 </div>
+
                 <input 
-                  type="text" placeholder="Image URL (optional)" value={formData.image_url}
-                  className="w-full bg-black border border-[#1f1f23] p-3 rounded-lg outline-none focus:border-purple-500"
-                  onChange={(e) => setFormData({...formData, image_url: e.target.value})}
+                  type="text" 
+                  placeholder="IMAGE URL (OPTIONAL)" 
+                  value={formData.image_url}
+                  className="w-full bg-transparent border-b border-white/20 pb-3 outline-none focus:border-[#d4af37]"
+                  onChange={(e) => setFormData({...formData, image_url: e.target.value})} 
                 />
-                <div className="flex gap-3 pt-2">
+
+                <div className="flex gap-4 pt-6">
                   <button 
-                    type="button" onClick={() => setShowModal(false)}
-                    className="flex-1 bg-gray-800 hover:bg-gray-700 py-3 rounded-lg font-bold text-sm"
+                    type="button" 
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 py-4 border border-white/30 hover:bg-white/5 transition"
                   >
-                    Cancel
+                    CANCEL
                   </button>
                   <button 
                     type="submit"
-                    className="flex-1 bg-purple-600 hover:bg-purple-700 py-3 rounded-lg font-bold text-sm"
+                    className="flex-1 py-4 bg-[#d4af37] text-black font-medium tracking-widest hover:bg-white transition"
                   >
-                    {editingId ? 'Save Changes' : 'Create Product'}
+                    {editingId ? 'SAVE CHANGES' : 'CREATE ASSET'}
                   </button>
                 </div>
               </form>
@@ -161,35 +202,26 @@ export default function ProductManagement() {
           </div>
         )}
 
-        <div className="bg-[#0f0f12] border border-[#1f1f23] rounded-xl overflow-hidden">
+        {/* Table */}
+        <div className="border border-white/10 overflow-hidden">
           <table className="w-full text-left">
-            <thead className="bg-[#1f1f23] text-gray-400 text-xs uppercase">
-              <tr>
-                <th className="px-6 py-4">Product</th>
-                <th className="px-6 py-4">Price</th>
-                <th className="px-6 py-4">Stock</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+            <thead className="bg-black/50 border-b border-white/10">
+              <tr className="text-xs tracking-widest text-white/60">
+                <th className="px-8 py-6">ASSET</th>
+                <th className="px-8 py-6">PRICE</th>
+                <th className="px-8 py-6">STOCK</th>
+                <th className="px-8 py-6 text-right">ACTIONS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1f1f23]">
+            <tbody className="divide-y divide-white/10">
               {products.map((p) => (
-                <tr key={p.id} className="hover:bg-white/5 transition">
-                  <td className="px-6 py-4 font-medium">{p.name}</td>
-                  <td className="px-6 py-4 text-gray-300">${p.price}</td>
-                  <td className="px-6 py-4 text-gray-300">{p.stock_quantity}</td>
-                  <td className="px-6 py-4 text-right">
-                    <button 
-                      onClick={() => openEditModal(p)}
-                      className="text-indigo-400 hover:text-indigo-300 mr-4 text-sm font-medium"
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(p.id)}
-                      className="text-red-400 hover:text-red-300 text-sm font-medium"
-                    >
-                      Delete
-                    </button>
+                <tr key={p.id} className="hover:bg-white/5 transition group">
+                  <td className="px-8 py-8 font-medium">{p.name}</td>
+                  <td className="px-8 py-8 text-[#d4af37]">₱{p.price.toLocaleString()}</td>
+                  <td className="px-8 py-8">{p.stock_quantity}</td>
+                  <td className="px-8 py-8 text-right">
+                    <button onClick={() => openEditModal(p)} className="text-white/70 hover:text-white mr-6">EDIT</button>
+                    <button onClick={() => handleDelete(p.id)} className="text-red-400/70 hover:text-red-400">DELETE</button>
                   </td>
                 </tr>
               ))}

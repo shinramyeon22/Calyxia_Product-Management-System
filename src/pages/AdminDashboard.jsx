@@ -24,8 +24,6 @@ export default function AdminDashboard() {
         .order('email', { ascending: true });
 
       if (error) throw error;
-
-      console.log("Fetched Users:", data); // Check F12 console for this!
       setUsers(data || []);
     } catch (err) {
       console.error("Dashboard Error:", err);
@@ -37,7 +35,7 @@ export default function AdminDashboard() {
 
   async function toggleStatus(userId, currentStatus) {
     if (userId === currentAdmin?.id) {
-      alert("Safety Check: You cannot deactivate yourself!");
+      alert("You cannot deactivate yourself!");
       return;
     }
 
@@ -47,80 +45,77 @@ export default function AdminDashboard() {
       .update({ record_status: newStatus })
       .eq('id', userId);
 
-    if (error) {
-      alert("Update failed: " + error.message);
-    } else {
-      fetchUsers();
-    }
+    if (error) alert("Update failed: " + error.message);
+    else fetchUsers();
   }
 
-  if (loading) return (
-    <div className="min-h-screen bg-black text-white">
-      <Navbar /><div className="p-10">Loading user database...</div>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <Navbar />
+        <p className="text-[#d4af37] tracking-widest text-sm">ACCESSING RECORDS...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[#050505] text-white pt-20">
       <Navbar />
-      <div className="max-w-6xl mx-auto p-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Admin Management</h1>
-          <button onClick={fetchUsers} className="text-xs bg-gray-800 px-3 py-1 rounded hover:bg-gray-700">
-            🔄 Refresh Table
+      <div className="max-w-7xl mx-auto px-8 py-16">
+        <div className="flex justify-between items-end mb-12">
+          <div>
+            <span className="block text-[#d4af37] text-xs tracking-[0.5em]">ADMINISTRATION</span>
+            <h1 className="serif-font text-6xl italic tracking-tighter">User Registry</h1>
+          </div>
+          <button onClick={fetchUsers} className="border border-white/30 px-8 py-4 text-xs tracking-widest hover:border-[#d4af37] hover:text-[#d4af37] transition">
+            REFRESH RECORDS
           </button>
         </div>
 
         {errorMsg && (
-          <div className="bg-red-900/20 border border-red-500 p-4 rounded mb-6 text-red-400">
-            <strong>Database Error:</strong> {errorMsg}
+          <div className="bg-red-900/20 border border-red-500/50 p-6 mb-10 text-red-400">
+            {errorMsg}
           </div>
         )}
 
-        {users.length === 0 && !errorMsg ? (
-          <div className="bg-[#0f0f12] border border-dashed border-gray-800 p-10 text-center rounded-xl">
-            <p className="text-gray-500">No users found. This usually means RLS is blocking the read.</p>
-          </div>
-        ) : (
-          <div className="bg-[#0f0f12] border border-[#1f1f23] rounded-xl overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-[#1f1f23] text-gray-400 text-sm uppercase">
-                <tr>
-                  <th className="px-6 py-4">Email</th>
-                  <th className="px-6 py-4">Role</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Actions</th>
+        <div className="border border-white/10">
+          <table className="w-full">
+            <thead className="bg-black/60">
+              <tr className="text-xs tracking-widest text-white/60">
+                <th className="px-8 py-6 text-left">IDENTITY</th>
+                <th className="px-8 py-6 text-left">ROLE</th>
+                <th className="px-8 py-6 text-left">STATUS</th>
+                <th className="px-8 py-6 text-right">CONTROL</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/10">
+              {users.map((u) => (
+                <tr key={u.id} className="hover:bg-white/5 transition">
+                  <td className="px-8 py-8">{u.email}</td>
+                  <td className="px-8 py-8">
+                    <span className={`px-4 py-1 text-xs border ${u.user_type === 'ADMIN' ? 'border-[#d4af37] text-[#d4af37]' : 'border-white/30'}`}>
+                      {u.user_type}
+                    </span>
+                  </td>
+                  <td className="px-8 py-8">
+                    <span className={`px-4 py-1 text-xs ${u.record_status === 'ACTIVE' ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {u.record_status}
+                    </span>
+                  </td>
+                  <td className="px-8 py-8 text-right">
+                    <button 
+                      onClick={() => toggleStatus(u.id, u.record_status)}
+                      disabled={u.id === currentAdmin?.id}
+                      className={`text-sm ${u.id === currentAdmin?.id ? 'text-white/30' : 'hover:text-[#d4af37]'}`}
+                    >
+                      {u.id === currentAdmin?.id ? 'CURRENT ADMIN' : (u.record_status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE')}
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1f1f23]">
-                {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-white/5 transition">
-                    <td className="px-6 py-4">{u.email}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded text-xs ${u.user_type === 'ADMIN' ? 'bg-purple-900/50 text-purple-300' : 'bg-gray-800 text-gray-400'}`}>
-                        {u.user_type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded text-xs ${u.record_status === 'ACTIVE' ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
-                        {u.record_status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button 
-                        onClick={() => toggleStatus(u.id, u.record_status)}
-                        disabled={u.id === currentAdmin?.id}
-                        className={`text-sm font-medium ${u.id === currentAdmin?.id ? 'text-gray-600' : 'text-indigo-400 hover:underline'}`}
-                      >
-                        {u.id === currentAdmin?.id ? 'Current Admin' : (u.record_status === 'ACTIVE' ? 'Deactivate' : 'Activate')}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

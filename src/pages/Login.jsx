@@ -1,147 +1,122 @@
-// src/pages/Login.jsx 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Added missing import
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { useAuth } from "../context/AuthContext.jsx";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { error: authError } = useAuth(); // renamed to avoid conflict with local error variables
-
-  // Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Check for URL error parameters (e.g., ?error=not_activated)
-  const params = new URLSearchParams(window.location.search);
-  const errorParam = params.get('error');
-
-  // Handle Google OAuth Login
-  const handleGoogleLogin = async () => {
+  // Google Sign In
+  const handleGoogleSignIn = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    if (error) {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        }
+      });
+      if (error) throw error;
+    } catch (error) {
       alert("Google Auth Error: " + error.message);
       setLoading(false);
     }
   };
 
-  // Handle standard Email/Password Login
+  // Email/Password Login - Original Flow Restored
   const handleEmailLogin = async (e) => {
-  e.preventDefault();
-  setLoading(true);
+    e.preventDefault();
+    setLoading(true);
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  if (error) {
-    alert("Login Error: " + error.message);
-    setLoading(false);
-  } else {
-    // CHANGE THIS: from '/dashboard' to '/products'
-    navigate('/products'); 
-  }
-};
+    if (error) {
+      alert("Login Error: " + error.message);
+      setLoading(false);
+    } else {
+      navigate('/products');
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-6">
-      <div className="w-full max-w-md">
-
-        {/* Branding */}
-        <div className="text-center mb-10">
-          <div className="mx-auto w-14 h-14 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-900/30">
-            <span className="text-white text-2xl font-bold">C</span>
-          </div>
-          <h1 className="mt-6 text-3xl font-semibold text-white tracking-tight">Calyxia</h1>
-          <p className="text-gray-400 mt-2 text-sm">Product Management System</p>
+    <div className="min-h-screen w-full flex bg-[#050505] overflow-hidden">
+      {/* Left Visual Panel */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-[#0a0a0c] items-center justify-center overflow-hidden border-r border-white/5">
+        <div className="absolute inset-0 opacity-70">
+          <img 
+            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070" 
+            alt="Luxury Showroom" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent" />
         </div>
+        
+        <div className="relative z-10 text-center px-12">
+          <h2 className="serif-font text-[180px] leading-none text-white/10 select-none">CX</h2>
+          <p className="text-[#d4af37] text-xs tracking-[0.5em] mt-6">THE PRIVATE COLLECTION</p>
+        </div>
+      </div>
 
-        {/* Card */}
-        <div className="bg-[#0f0f12] border border-[#1f1f23] rounded-2xl p-8 shadow-2xl">
-          
-          <div className="mb-6">
-            <h2 className="text-xl text-white font-medium">Sign in</h2>
-            <p className="text-gray-500 text-sm mt-1">Access your workspace</p>
+      {/* Right Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-16">
+            <h1 className="serif-font text-6xl italic tracking-tighter">Calyxia</h1>
+            <p className="text-white/50 mt-3 text-sm tracking-widest">MANAGEMENT ENTERPRISE</p>
           </div>
-
-          {/* Alert Messages */}
-          {authError && (
-            <div className="bg-red-900/20 border border-red-500/50 text-red-400 px-4 py-2 rounded-lg mb-4 text-sm">
-              {authError}
-            </div>
-          )}
-          {errorParam === 'not_activated' && (
-            <div className="bg-yellow-900/20 border border-yellow-500/50 text-yellow-400 px-4 py-2 rounded-lg mb-4 text-sm">
-              Account not yet active. Please wait for admin approval.
-            </div>
-          )}
 
           {/* Google Button */}
           <button
-            onClick={handleGoogleLogin}
+            onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white text-black rounded-lg font-medium hover:bg-gray-200 transition duration-200 disabled:opacity-60"
+            className="w-full bg-white text-black py-5 rounded-sm flex items-center justify-center gap-3 text-sm tracking-widest hover:bg-zinc-200 transition"
           >
-            <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-              <path fill="#EA4335" d="M24 9.5c3.54 0 6.72 1.22 9.21 3.6l6.85-6.85C35.9 2.36 30.41 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.2C12.43 13.11 17.74 9.5 24 9.5z" />
-              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.43-4.55H24v9.02h12.94c-.56 2.98-2.24 5.52-4.77 7.22l7.3 5.66c4.27-3.92 6.51-9.72 6.51-17.35z" />
-              <path fill="#FBBC05" d="M10.54 28.43a14.5 14.5 0 0 1 0-9.25l-7.98-6.2A24 24 0 0 0 0 24c0 3.84.91 7.47 2.56 10.22l7.98-5.79z" />
-              <path fill="#34A853" d="M24 48c6.41 0 11.8-2.12 15.73-5.77l-7.3-5.66c-2.03 1.36-4.63 2.17-8.43 2.17-6.26 0-11.57-3.61-13.46-8.77l-7.98 5.79C6.51 42.62 14.62 48 24 48z" />
-            </svg>
-            {loading ? "Connecting..." : "Continue with Google"}
+            Continue with Google
           </button>
 
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-[#1f1f23]" />
-            <span className="text-xs text-gray-500">OR</span>
-            <div className="flex-1 h-px bg-[#1f1f23]" />
+          <div className="my-10 flex items-center gap-4">
+            <div className="flex-1 h-px bg-white/10"></div>
+            <span className="text-xs text-white/40 tracking-widest">OR</span>
+            <div className="flex-1 h-px bg-white/10"></div>
           </div>
 
-          {/* Email Form */}
-          <form onSubmit={handleEmailLogin} className="space-y-4">
-            <input
-              type="email"
-              placeholder="Email"
-              required
+          {/* Email Login Form - Original Flow Restored */}
+          <form onSubmit={handleEmailLogin} className="space-y-6">
+            <input 
+              type="email" 
+              placeholder="EMAIL ADDRESS" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-black border border-[#1f1f23] text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
-            />
-            <input
-              type="password"
-              placeholder="Password"
+              className="w-full bg-transparent border-b border-white/20 pb-4 text-white placeholder:text-white/40 focus:border-[#d4af37] outline-none text-sm tracking-widest"
               required
+            />
+            <input 
+              type="password" 
+              placeholder="PASSWORD" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-black border border-[#1f1f23] text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+              className="w-full bg-transparent border-b border-white/20 pb-4 text-white placeholder:text-white/40 focus:border-[#d4af37] outline-none text-sm tracking-widest"
+              required
             />
-            <button
+            <button 
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition duration-200 shadow-lg shadow-purple-900/20 disabled:opacity-60"
+              className="w-full bg-[#d4af37] text-black py-5 text-xs tracking-[0.125em] font-medium hover:bg-white transition disabled:opacity-70"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? "SIGNING IN..." : "SIGN IN"}
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Don’t have an account?{" "}
-            <a href="/register" className="text-purple-400 hover:text-purple-300">Register</a>
+          <p className="text-center text-xs text-white/50 mt-12">
+            Don't have access?{' '}
+            <Link to="/register" className="text-[#d4af37] hover:underline">Register Identity</Link>
           </p>
         </div>
-
-        <p className="text-center text-xs text-gray-600 mt-6">
-          Secure login powered by Supabase
-        </p>
       </div>
     </div>
   );

@@ -1,127 +1,83 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { Link } from 'react-router-dom';
 
 const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
+  const navigate = useNavigate();
 
-  const handleGoogleSignIn = async () => {
+  const handleRegister = async (e) => {
+    e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
         options: {
-          // MUST match your Login.jsx and App.jsx route
-          redirectTo: `${window.location.origin}/auth/callback`,
+          data: { full_name: fullName },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
+
       if (error) throw error;
+      alert('Verification link sent! Please check your email.');
+      navigate('/login');
     } catch (error) {
       alert(error.message);
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleEmailRegister = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setSuccessMsg(''); // Clear previous messages
-
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { 
-      emailRedirectTo: `${window.location.origin}/auth/callback` 
-    }
-  });
-
-  if (error) {
-    // This handles "User already registered" or "Password too short"
-    alert("Registration Error: " + error.message);
-  } else if (data.user && data.session === null) {
-    // This happens if email confirmation is ON
-    setSuccessMsg('Success! Please check your email to confirm your account.');
-  } else {
-    // This happens if email confirmation is OFF
-    setSuccessMsg('Account created! Redirecting to login...');
-    setTimeout(() => navigate('/login'), 2000);
-  }
-  setLoading(false);
-};
-
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-6">
-      <div className="w-full max-w-md">
-        {/* Branding */}
-        <div className="text-center mb-10">
-          <div className="mx-auto w-14 h-14 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-900/30">
-            <span className="text-white text-2xl font-bold">C</span>
-          </div>
-          <h1 className="mt-6 text-3xl font-semibold text-white tracking-tight">Calyxia</h1>
-          <p className="text-gray-400 mt-2 text-sm">Join the workspace</p>
-        </div>
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-8">
+      <div className="w-full max-w-md border border-white/10 bg-black/50 backdrop-blur-xl p-12">
+        <h2 className="serif-font text-5xl italic text-center mb-12">Establish Identity</h2>
 
-        {/* Card */}
-        <div className="bg-[#0f0f12] border border-[#1f1f23] rounded-2xl p-8 shadow-2xl">
-          {successMsg ? (
-            <div className="bg-green-900/20 border border-green-500/50 text-green-400 px-4 py-3 rounded-lg text-center">
-              {successMsg}
-            </div>
-          ) : (
-            <>
-              <h2 className="text-xl text-white font-medium mb-6">Create account</h2>
-              
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white text-black rounded-lg font-medium hover:bg-gray-200 transition duration-200 disabled:opacity-60"
-              >
-                <img src="https://authjs.dev/img/providers/google.svg" width="18" alt="Google" />
-                Continue with Google
-              </button>
+        <form onSubmit={handleRegister} className="space-y-8">
+          <input
+            type="text"
+            placeholder="FULL NAME"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className="w-full bg-transparent border-b border-white/20 pb-4 text-sm tracking-widest focus:border-[#d4af37] outline-none"
+            required
+          />
 
-              <div className="flex items-center gap-3 my-6">
-                <div className="flex-1 h-px bg-[#1f1f23]" />
-                <span className="text-xs text-gray-500">OR</span>
-                <div className="flex-1 h-px bg-[#1f1f23]" />
-              </div>
+          <input
+            type="email"
+            placeholder="EMAIL ADDRESS"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full bg-transparent border-b border-white/20 pb-4 text-sm tracking-widest focus:border-[#d4af37] outline-none"
+            required
+          />
 
-              <form onSubmit={handleEmailRegister} className="space-y-4">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg bg-black border border-[#1f1f23] text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition"
-                />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg bg-black border border-[#1f1f23] text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition"
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition duration-200 disabled:opacity-60"
-                >
-                  {loading ? "Processing..." : "Register"}
-                </button>
-              </form>
-            </>
-          )}
+          <input
+            type="password"
+            placeholder="PASSWORD"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full bg-transparent border-b border-white/20 pb-4 text-sm tracking-widest focus:border-[#d4af37] outline-none"
+            required
+          />
 
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Already have an account?{" "}
-            <Link to="/login" className="text-purple-400 hover:text-purple-300">Sign in</Link>
-          </p>
-        </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-5 bg-[#d4af37] text-black text-xs tracking-[0.125em] font-medium hover:bg-white transition disabled:opacity-70"
+          >
+            {loading ? 'ESTABLISHING...' : 'CREATE ACCOUNT'}
+          </button>
+        </form>
+
+        <p className="text-center text-xs text-white/50 mt-10">
+          Already have access?{' '}
+          <Link to="/login" className="text-[#d4af37] hover:underline">Sign In</Link>
+        </p>
       </div>
     </div>
   );
