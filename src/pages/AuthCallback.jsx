@@ -2,43 +2,51 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
-function AuthCallbackPage() {
+// Changed name to AuthCallback to match your App.jsx import
+function AuthCallback() {
   const navigate = useNavigate();
- 
+
   useEffect(() => {
     const handleAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-      if (session) {
-        // 1. Check if user exists in your custom table
-        const { data: userRow, error } = await supabase
-          .from('user')
-          .select('record_status')
-          .eq('userId', session.user.id)
-          .single();
+      if (sessionError || !session) {
+        navigate('/login');
+        return;
+      }
 
-        // 2. If no record exists, create one (Pending Approval)
-        if (error && error.code === 'PGRST116') {
-          await supabase.from('user').insert([
-            { 
-              userId: session.user.id, 
-              email: session.user.email, 
-              record_status: 'INACTIVE',
-              user_type: 'USER' 
-            }
-          ]);
-          await supabase.auth.signOut();
-          navigate('/login?error=not_activated');
+      const { data: userRow, error: fetchError } = await supabase
+        .from('app_user')
+        .select('record_status')
+        .eq('id', session.user.id)
+        .single();
+
+      // If new user, create record and go to products
+      if (fetchError && fetchError.code === 'PGRST116') {
+        const { error: insertError } = await supabase
+          .from('app_user')
+          .insert([{
+            id: session.user.id,
+            email: session.user.email,
+            record_status: 'ACTIVE', 
+            user_type: 'USER'
+          }]);
+
+        if (insertError) {
+          navigate('/login?error=database_error');
           return;
         }
 
-        // 3. If record exists, check status
-        if (userRow?.record_status === 'ACTIVE') {
-          navigate('/products');
-        } else {
-          await supabase.auth.signOut();
-          navigate('/login?error=not_activated');
-        }
+        navigate('/products'); // <--- Redirect 1
+        return;
+      }
+
+      // If existing user, check status
+      if (userRow?.record_status === 'ACTIVE') {
+        navigate('/products'); // <--- Redirect 2
+      } else {
+        await supabase.auth.signOut();
+        navigate('/login?error=not_activated');
       }
     };
 
@@ -46,10 +54,10 @@ function AuthCallbackPage() {
   }, [navigate]);
 
   return (
-    <div className="auth-container">
-      <p>Finalizing sign in...</p>
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <p className="text-white">Finalizing sign in...</p>
     </div>
   );
 }
 
-export default AuthCallbackPage;
+export default AuthCallback;
