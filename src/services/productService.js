@@ -1,15 +1,22 @@
-import { supabase } from '../supabaseClient';
+import { supabase } from './supabaseClient';
+
+// =====================================================
+// HOPE PMS - PRODUCT SERVICE (Matches Project Guide Exactly)
+// Uses prodcode as primary identifier
+// =====================================================
 
 export const getProducts = async (userType = 'USER') => {
   try {
     let query = supabase
       .from('product')
-      .select('*')
-      .order('id', { ascending: true });
+      .select('prodcode, description, unit, record_status, stamp')
+      .order('prodcode', { ascending: true });
 
+    // USER only sees ACTIVE records (per spec)
     if (userType.toUpperCase() === 'USER') {
-      query = query.eq('record_status', 'A');
+      query = query.eq('record_status', 'ACTIVE');
     }
+    // ADMIN / SUPERADMIN see all (RLS also enforces this)
 
     const { data, error } = await query;
     if (error) throw error;
@@ -20,14 +27,16 @@ export const getProducts = async (userType = 'USER') => {
   }
 };
 
-export const addProduct = async (productData) => {
+export const addProduct = async (productData, userId) => {
   try {
+    const stamp = `ADDED ${userId || 'system'} ${new Date().toISOString().slice(0, 16)}`;
+    
     const { data, error } = await supabase.from('product').insert([{
-      name: productData.name || 'New Product',
+      prodcode: productData.prodcode,
       description: productData.description,
       unit: productData.unit || 'ea',
-      record_status: 'A',
-      created_at: new Date().toISOString()
+      record_status: 'ACTIVE',
+      stamp
     }]).select().single();
 
     if (error) throw error;
@@ -38,14 +47,15 @@ export const addProduct = async (productData) => {
   }
 };
 
-export const updateProduct = async (id, productData) => {
+export const updateProduct = async (prodcode, productData, userId) => {
   try {
+    const stamp = `EDITED ${userId || 'system'} ${new Date().toISOString().slice(0, 16)}`;
+    
     const { data, error } = await supabase.from('product').update({
-      name: productData.name,
       description: productData.description,
       unit: productData.unit,
-      updated_at: new Date().toISOString()
-    }).eq('id', id).select().single();
+      stamp
+    }).eq('prodcode', prodcode).select().single();
 
     if (error) throw error;
     return data;
@@ -55,12 +65,14 @@ export const updateProduct = async (id, productData) => {
   }
 };
 
-export const softDeleteProduct = async (id) => {
+export const softDeleteProduct = async (prodcode, userId) => {
   try {
+    const stamp = `DEACTIVATED ${userId} ${new Date().toISOString().slice(0, 16)}`;
+    
     const { data, error } = await supabase.from('product').update({
-      record_status: 'I',
-      updated_at: new Date().toISOString()
-    }).eq('id', id).select().single();
+      record_status: 'INACTIVE',
+      stamp
+    }).eq('prodcode', prodcode).select().single();
 
     if (error) throw error;
     return data;
@@ -70,12 +82,14 @@ export const softDeleteProduct = async (id) => {
   }
 };
 
-export const recoverProduct = async (id) => {
+export const recoverProduct = async (prodcode, userId) => {
   try {
+    const stamp = `REACTIVATED ${userId} ${new Date().toISOString().slice(0, 16)}`;
+    
     const { data, error } = await supabase.from('product').update({
-      record_status: 'A',
-      updated_at: new Date().toISOString()
-    }).eq('id', id).select().single();
+      record_status: 'ACTIVE',
+      stamp
+    }).eq('prodcode', prodcode).select().single();
 
     if (error) throw error;
     return data;
@@ -85,13 +99,14 @@ export const recoverProduct = async (id) => {
   }
 };
 
-export const getPriceHistory = async (productId) => {
+// Price History
+export const getPriceHistory = async (prodcode) => {
   try {
     const { data, error } = await supabase
-      .from('priceHist')
+      .from('pricehist')
       .select('*')
-      .eq('product_id', productId)   // Make sure this column name matches your priceHist table
-      .order('effDate', { ascending: false });
+      .eq('prodcode', prodcode)
+      .order('effdate', { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -101,14 +116,15 @@ export const getPriceHistory = async (productId) => {
   }
 };
 
-export const addPriceEntry = async (productId, effDate, unitPrice) => {
+export const addPriceEntry = async (prodcode, effDate, unitPrice, userId) => {
   try {
-    const { data, error } = await supabase.from('priceHist').insert([{
-      product_id: productId,
-      effDate,
-      unitPrice: parseFloat(unitPrice),
-      record_status: 'A',
-      created_at: new Date().toISOString()
+    const stamp = `PRICE UPDATE ${userId} ${new Date().toISOString().slice(0, 16)}`;
+    
+    const { data, error } = await supabase.from('pricehist').insert([{
+      prodcode: prodcode,
+      effdate: effDate,
+      unitprice: parseFloat(unitPrice),
+      stamp
     }]).select().single();
 
     if (error) throw error;
@@ -119,17 +135,54 @@ export const addPriceEntry = async (productId, effDate, unitPrice) => {
   }
 };
 
-export const getCurrentPrice = async (productId) => {
+export const getCurrentPrice = async (prodcode) => {
   try {
+    // Use the view from your existing DB
     const { data } = await supabase
-      .from('priceHist')
-      .select('unitPrice')
-      .eq('product_id', productId)
-      .order('effDate', { ascending: false })
-      .limit(1)
+      .from('current_product_price')
+      .select('current_price')
+      .eq('prodcode', prodcode)
       .single();
 
-    return data?.unitPrice || 0;
+    return data?.current_price || 0;
+  } catch {
+    return 0;
+  }
+};
+
+// Acquire / Stock (optional for now)
+export const acquireProduct = async (prodcode) => {
+  try {
+    const { data: prod } = await supabase
+      .from('product')
+      .select('record_status')
+      .eq('prodcode', prodcode)
+      .single();
+
+    if (!prod || prod.record_status !== 'ACTIVE') {
+      throw new Error('Product not available');
+    }
+
+    // In real system this would also insert into sales/salesDetail
+    return { success: true };
+  } catch (error) {
+    console.error('Error acquiring product:', error);
+    throw error;
+  }
+};
+
+// Get current stock for a product (used in ProductDetails)
+export const getProductStock = async (prodcode) => {
+  try {
+    const { data } = await supabase
+      .from('product')
+      .select('record_status')
+      .eq('prodcode', prodcode)
+      .single();
+
+    // For now we return a mock stock since stock column may not exist yet
+    // In full implementation, add a 'stock' column to product table
+    return data?.record_status === 'ACTIVE' ? 10 : 0;
   } catch {
     return 0;
   }

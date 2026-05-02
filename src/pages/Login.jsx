@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../services/supabaseClient';
 
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Google Sign In
   const handleGoogleSignIn = async () => {
     setLoading(true);
+    setError('');
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -20,15 +21,15 @@ export default function Login() {
       });
       if (error) throw error;
     } catch (error) {
-      alert("Google Auth Error: " + error.message);
+      setError("Google Auth Error: " + error.message);
       setLoading(false);
     }
   };
 
-  // Email/Password Login - Original Flow Restored
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -36,7 +37,7 @@ export default function Login() {
     });
 
     if (error) {
-      alert("Login Error: " + error.message);
+      setError("Login Error: " + error.message);
       setLoading(false);
     } else {
       navigate('/products');
@@ -70,11 +71,16 @@ export default function Login() {
             <p className="text-white/50 mt-3 text-sm tracking-widest">MANAGEMENT ENTERPRISE</p>
           </div>
 
-          {/* Google Button */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-950/50 border border-red-500/50 text-red-400 text-sm tracking-widest">
+              {error}
+            </div>
+          )}
+
           <button
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full bg-white text-black py-5 rounded-sm flex items-center justify-center gap-3 text-sm tracking-widest hover:bg-zinc-200 transition"
+            className="w-full bg-white text-black py-5 rounded-sm flex items-center justify-center gap-3 text-sm tracking-widest hover:bg-zinc-200 transition disabled:opacity-70"
           >
             Continue with Google
           </button>
@@ -85,7 +91,6 @@ export default function Login() {
             <div className="flex-1 h-px bg-white/10"></div>
           </div>
 
-          {/* Email Login Form - Original Flow Restored */}
           <form onSubmit={handleEmailLogin} className="space-y-6">
             <input 
               type="email" 

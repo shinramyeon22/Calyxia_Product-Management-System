@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useRights } from '../context/UserRightsContext';
 import { getProducts, recoverProduct } from '../services/productService';
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
@@ -12,16 +12,16 @@ export default function DeletedItemsPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { user } = useAuth();
+  const { hasRight, loading: rightsLoading } = useRights();
   const navigate = useNavigate();
 
-  // Redirect USER accounts away from this page
+  // Redirect if no restore right (USER and those without per matrix)
   useEffect(() => {
-    const userType = (user?.user_type || user?.raw_user_meta_data?.user_type || 'USER').toUpperCase();
-    if (userType === 'USER') {
+    if (rightsLoading) return;
+    if (!hasRight('PRD_RESTORE')) {
       navigate('/products', { replace: true });
     }
-  }, [user, navigate]);
+  }, [hasRight, rightsLoading, navigate]);
 
   const fetchDeletedProducts = useCallback(async () => {
     try {
@@ -41,17 +41,17 @@ export default function DeletedItemsPage() {
     fetchDeletedProducts();
   }, [fetchDeletedProducts]);
 
-  const handleRecover = async (id) => {
+  const handleRecover = async (prodcode) => {
     if (!window.confirm('Recover this product?')) return;
     try {
-      await recoverProduct(id);
+      await recoverProduct(prodcode);
       await fetchDeletedProducts();
     } catch (err) {
       alert('Failed to recover: ' + err.message);
     }
   };
 
-  if (loading) {
+  if (loading || rightsLoading) {
     return (
       <div className="min-h-screen bg-[#050505] text-white pt-20">
         <Navbar />
@@ -113,15 +113,15 @@ export default function DeletedItemsPage() {
                     </tr>
                   ) : (
                     products.map(p => (
-                      <tr key={p.id} className="hover:bg-white/5 transition">
-                        <td className="px-8 py-8 font-mono text-sm">{p.id}</td>
+                      <tr key={p.prodcode} className="hover:bg-white/5 transition">
+                        <td className="px-8 py-8 font-mono text-sm">{p.prodcode}</td>
                         <td className="px-8 py-8">{p.description || p.name || '—'}</td>
                         <td className="px-8 py-8 text-xs text-white/50">
                           {p.created_at ? new Date(p.created_at).toLocaleString() : '—'}
                         </td>
                         <td className="px-8 py-8 text-right">
                           <button 
-                            onClick={() => handleRecover(p.id)} 
+                            onClick={() => handleRecover(p.prodcode)} 
                             className="text-emerald-400 hover:text-emerald-300 text-sm tracking-widest"
                           >
                             RECOVER

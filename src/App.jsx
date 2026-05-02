@@ -8,6 +8,11 @@ import AdminDashboard from './pages/AdminDashboard';
 import ProductManagement from './pages/ProductManagement';
 import ProductDetails from './pages/ProductDetails';
 import DeletedItemsPage from './pages/DeletedItemsPage';
+import Dashboard from './pages/Dashboard';
+import Reports from './pages/Reports';
+import AccessRules from './pages/AccessRules';
+import { ToastProvider } from './context/ToastProvider';
+import PageTransition from './components/PageTransition';
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const { session, user, loading } = useAuth();
@@ -26,21 +31,29 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 
 function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/auth/callback" element={<AuthCallback />} />
+    <ToastProvider>
+      <PageTransition>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
 
-      <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-      <Route path="/product/:id" element={<ProtectedRoute><ProductDetails /></ProtectedRoute>} />
+          <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+          <Route path="/product/:id" element={<ProtectedRoute><ProductDetails /></ProtectedRoute>} />
 
-      <Route path="/admin" element={<ProtectedRoute requireAdmin={true}><AdminDashboard /></ProtectedRoute>} />
-      <Route path="/admin/products" element={<ProtectedRoute requireAdmin={true}><ProductManagement /></ProtectedRoute>} />
-      <Route path="/deleted-items" element={<ProtectedRoute requireAdmin={true}><DeletedItemsPage /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
 
-      <Route path="/" element={<Navigate to="/products" replace />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+          <Route path="/admin" element={<ProtectedRoute requireAdmin={true}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/products" element={<ProtectedRoute requireAdmin={true}><ProductManagement /></ProtectedRoute>} />
+          <Route path="/deleted-items" element={<ProtectedRoute requireAdmin={true}><DeletedItemsPage /></ProtectedRoute>} />
+          <Route path="/admin/rights" element={<ProtectedRoute requireAdmin={true}><AccessRules /></ProtectedRoute>} />
+
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </PageTransition>
+    </ToastProvider>
   );
 }
 

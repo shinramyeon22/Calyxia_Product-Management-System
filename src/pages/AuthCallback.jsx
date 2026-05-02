@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../services/supabaseClient';
 
-// Changed name to AuthCallback to match your App.jsx import
 function AuthCallback() {
   const navigate = useNavigate();
 
@@ -11,13 +10,13 @@ function AuthCallback() {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError || !session) {
-        navigate('/login');
+        navigate('/login?error=auth_failed');
         return;
       }
 
       const { data: userRow, error: fetchError } = await supabase
         .from('app_user')
-        .select('record_status')
+        .select('record_status, user_type')
         .eq('id', session.user.id)
         .single();
 
@@ -37,13 +36,13 @@ function AuthCallback() {
           return;
         }
 
-        navigate('/products'); // <--- Redirect 1
+        navigate('/products');
         return;
       }
 
       // If existing user, check status
       if (userRow?.record_status === 'ACTIVE') {
-        navigate('/products'); // <--- Redirect 2
+        navigate('/products');
       } else {
         await supabase.auth.signOut();
         navigate('/login?error=not_activated');
@@ -55,7 +54,10 @@ function AuthCallback() {
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center">
-      <p className="text-white">Finalizing sign in...</p>
+      <div className="text-center">
+        <div className="w-8 h-[1px] bg-[#d4af37] mx-auto mb-6 animate-pulse"></div>
+        <p className="text-[#d4af37] text-xs tracking-[0.5em]">FINALIZING SIGN IN...</p>
+      </div>
     </div>
   );
 }
