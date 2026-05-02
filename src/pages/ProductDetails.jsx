@@ -1,12 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/AuthContext'; // Added for Admin check
 import Navbar from '../components/Navbar';
+import { useRights } from '../context/UserRightsContext';
 
 export default function ProductDetails() {
   const { id } = useParams();
+  const { user } = useAuth(); 
   const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
+  
+  // 1. DATA LOADING (Keep this name)
+  const [loading, setLoading] = useState(true); 
+  
+  // 2. RIGHTS LOADING (Rename 'loading' to 'rightsLoading' here)
+  const { hasRight, loading: rightsLoading } = useRights();
+
+  // PR-02: Derived Admin check for Stamp visibility
+  const userType = (user?.user_type || user?.raw_user_meta_data?.user_type || 'USER').toUpperCase();
+  const isAdminOrSuper = userType === 'ADMIN' || userType === 'SUPERADMIN';
 
   useEffect(() => {
     async function fetchProduct() {
@@ -22,8 +34,17 @@ export default function ProductDetails() {
     fetchProduct();
   }, [id]);
 
-  if (loading) return <div className="min-h-screen bg-[#050505]" />;
-
+  // PR-02: Professional unified loading state
+  if (loading || rightsLoading) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+         <p className="text-[#d4af37] text-xs tracking-widest animate-pulse">
+            AUTHENTICATING ACCESS...
+         </p>
+      </div>
+    );
+  }
+  
   if (!product) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
@@ -49,15 +70,38 @@ export default function ProductDetails() {
         </div>
 
         <div className="flex flex-col justify-center">
-          <span className="text-[#d4af37] text-xs tracking-widest">INSTITUTIONAL ASSET</span>
+          <div className="flex justify-between items-start">
+            <span className="text-[#d4af37] text-xs tracking-widest">INSTITUTIONAL ASSET</span>
+            
+            {/* PR-02: Stamp visibility gated to Admin/SuperAdmin */}
+            {isAdminOrSuper && (
+              <span className="text-white/30 text-[10px] tracking-tighter">
+                VAULT ENTRY: {new Date(product.created_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+
           <h1 className="serif-font text-6xl md:text-7xl italic mt-6 leading-none">{product.name}</h1>
           <div className="text-5xl text-[#d4af37] mt-10 mb-12">₱{product.price ? Number(product.price).toLocaleString() : '0'}</div>
           
           <p className="text-white/70 text-lg leading-relaxed">{product.description}</p>
 
-          <button className="mt-16 w-full py-6 border border-[#d4af37] text-[#d4af37] text-xs tracking-widest hover:bg-[#d4af37] hover:text-black transition">
-            ACQUIRE THIS PIECE
-          </button>
+          {/* PR-02: Example of gating a specific action button */}
+          {hasRight('PRD_VIEW') && (
+            <button className="mt-16 w-full py-6 border border-[#d4af37] text-[#d4af37] text-xs tracking-widest hover:bg-[#d4af37] hover:text-black transition uppercase">
+              Acquire This Piece
+            </button>
+          )}
+
+          {/* PR-02: Added Edit button for Admins only */}
+          {hasRight('PRD_EDIT') && (
+            <Link 
+              to={`/admin/edit/${product.id}`}
+              className="mt-4 w-full py-4 bg-white/5 border border-white/10 text-white/50 text-center text-[10px] tracking-[0.3em] hover:text-white transition uppercase"
+            >
+              Modify Asset Records
+            </Link>
+          )}
         </div>
       </div>
     </div>

@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRights } from '../context/UserRightsContext';
@@ -29,10 +28,12 @@ export default function ProductManagement() {
   const [priceForm, setPriceForm] = useState({ effDate: '', unitPrice: '' });
 
   const { user } = useAuth();
+  // PR-02: Destructuring rights helpers
   const { hasRight, loading: rightsLoading } = useRights();
 
+  // PR-02: Derived state for "Stamp" column visibility (Admin/SuperAdmin only)
   const userType = (user?.user_type || user?.raw_user_meta_data?.user_type || 'USER').toUpperCase();
-  const isAdmin = userType === 'ADMIN' || userType === 'SUPERADMIN';
+  const isAdminOrSuper = userType === 'ADMIN' || userType === 'SUPERADMIN';
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -55,7 +56,7 @@ export default function ProductManagement() {
 
   useEffect(() => {
     fetchProducts();
-  }, []); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchProducts]);
 
   const toggleRow = useCallback(async (id) => {
     setExpandedRows(prev => {
@@ -75,13 +76,13 @@ export default function ProductManagement() {
   }, [priceHistories]);
 
   const openAddModal = () => {
-    if (!hasRight('PRD_ADD')) return alert('PRD_ADD permission required');
+    if (!hasRight('PRD_ADD')) return; 
     setFormData({ name: '', description: '', unit: 'ea' });
     setShowAddModal(true);
   };
 
   const openEditModal = (p) => {
-    if (!hasRight('PRD_EDIT')) return alert('PRD_EDIT permission required');
+    if (!hasRight('PRD_EDIT')) return;
     setSelectedProduct(p);
     setFormData({ 
       name: p.name || '', 
@@ -92,7 +93,7 @@ export default function ProductManagement() {
   };
 
   const openDeleteDialog = (p) => {
-    if (!hasRight('PRD_DEL')) return alert('PRD_DEL permission required');
+    if (!hasRight('PRD_DEL')) return;
     setSelectedProduct(p);
     setShowDeleteDialog(true);
   };
@@ -132,7 +133,7 @@ export default function ProductManagement() {
   };
 
   const handleAddPriceEntry = async (productId) => {
-    if (!hasRight('PRICE_ADD')) return alert('PRICE_ADD permission required');
+    if (!hasRight('PRICE_ADD')) return;
     if (!priceForm.effDate || !priceForm.unitPrice) return alert('Date and price required');
     try {
       await addPriceEntry(productId, priceForm.effDate, priceForm.unitPrice);
@@ -146,6 +147,7 @@ export default function ProductManagement() {
     }
   };
 
+  // PR-02: Show professional loading state while rights are being fetched
   if (loading || rightsLoading) {
     return (
       <div className="min-h-screen bg-[#050505] text-white pt-20">
@@ -155,7 +157,7 @@ export default function ProductManagement() {
           <div className="flex-1 flex items-center justify-center h-[70vh]">
             <div className="text-center">
               <div className="w-8 h-[1px] bg-[#d4af37] mx-auto mb-6 animate-pulse"></div>
-              <p className="text-[#d4af37] text-xs tracking-[0.5em]">LOADING INVENTORY VAULT...</p>
+              <p className="text-[#d4af37] text-xs tracking-[0.5em]">AUTHORIZING ACCESS...</p>
             </div>
           </div>
         </div>
@@ -176,14 +178,18 @@ export default function ProductManagement() {
                 <h1 className="serif-font text-6xl italic tracking-tighter">Inventory Vault</h1>
               </div>
               <div className="flex gap-4">
-                {hasRight('PRD_ADD') && <button onClick={openAddModal} className="border border-[#d4af37] text-[#d4af37] px-10 py-4 text-xs tracking-widest hover:bg-[#d4af37] hover:text-black transition-all">+ ADD NEW ASSET</button>}
+                {/* PR-02: Add Button Gating */}
+                {hasRight('PRD_ADD') && (
+                  <button onClick={openAddModal} className="border border-[#d4af37] text-[#d4af37] px-10 py-4 text-xs tracking-widest hover:bg-[#d4af37] hover:text-black transition-all">
+                    + ADD NEW ASSET
+                  </button>
+                )}
                 <button onClick={fetchProducts} className="border border-white/30 px-8 py-4 text-xs tracking-widest hover:border-[#d4af37] hover:text-[#d4af37] transition">REFRESH</button>
               </div>
             </div>
 
             {error && <div className="bg-red-900/20 border border-red-500/50 p-6 mb-10 text-red-400">{error}</div>}
 
-            {/* TABLE */}
             <div className="border border-white/10 overflow-hidden">
               <table className="w-full text-left">
                 <thead className="bg-black/50 border-b border-white/10">
@@ -193,14 +199,20 @@ export default function ProductManagement() {
                     <th className="px-8 py-6">DESCRIPTION</th>
                     <th className="px-8 py-6">UNIT</th>
                     <th className="px-8 py-6">CURRENT PRICE</th>
-                    {isAdmin && <th className="px-8 py-6">CREATED</th>}
+                    {/* PR-02: Stamp Column Header Gating */}
+                    {isAdminOrSuper && <th className="px-8 py-6">CREATED</th>}
                     <th className="px-8 py-6 text-right">ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
                   {products.length === 0 ? (
                     <tr>
-                      <td colSpan={isAdmin ? 7 : 6} className="px-8 py-16 text-center text-white/50">No products found.</td>
+                     {/* If Admin: colSpan is 7 (ID, Name, Desc, Unit, Price, Created, Actions)
+                        If User: colSpan is 6 (Created is hidden)
+                     */}
+                     <td colSpan={isAdminOrSuper ? 7 : 6} className="px-8 py-16 text-center text-white/50">
+                       No products found.
+                     </td>
                     </tr>
                   ) : (
                     products.map(p => {
@@ -214,26 +226,32 @@ export default function ProductManagement() {
                             <td className="px-8 py-8 text-sm max-w-xs truncate">{p.description || '—'}</td>
                             <td className="px-8 py-8 text-xs uppercase tracking-widest text-white/60">{p.unit || '—'}</td>
                             <td className="px-8 py-8 text-[#d4af37]">₱{Number(currPrice).toLocaleString()}</td>
-                            {isAdmin && <td className="px-8 py-8 text-xs text-white/50">{p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}</td>}
+                            {/* PR-02: Stamp Column Data Gating */}
+                            {isAdminOrSuper && <td className="px-8 py-8 text-xs text-white/50">{p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}</td>}
                             <td className="px-8 py-8 text-right">
                               <div className="flex items-center justify-end gap-4">
                                 <button onClick={() => toggleRow(p.id)} className="text-xs text-white/50 hover:text-white tracking-widest">
                                   {isExpanded ? 'HIDE HISTORY' : 'PRICE HISTORY'}
                                 </button>
+                                {/* PR-02: Edit Button Gating */}
                                 {hasRight('PRD_EDIT') && <button onClick={() => openEditModal(p)} className="text-white/70 hover:text-white text-xs tracking-widest">EDIT</button>}
+                                {/* PR-02: Delete Button Gating */}
                                 {hasRight('PRD_DEL') && <button onClick={() => openDeleteDialog(p)} className="text-red-400/70 hover:text-red-400 text-xs tracking-widest">DELETE</button>}
                               </div>
                             </td>
                           </tr>
                           {isExpanded && (
                             <tr className="bg-black/40">
-                              <td colSpan={isAdmin ? 7 : 6} className="px-8 py-8">
+                              {/* Update this colSpan too! */}
+                              <td colSpan={isAdminOrSuper ? 7 : 6} className="px-8 py-8">
+                                {/* Price history content */}
                                 <div className="pl-4 border-l border-white/20">
                                   <div className="flex justify-between items-center mb-6">
                                     <div>
                                       <span className="text-xs tracking-[0.5em] text-white/50">PRICE HISTORY</span>
                                       <div className="text-lg text-white mt-1">{p.name}</div>
                                     </div>
+                                    {/* PR-02: Price Entry Form Gating */}
                                     {hasRight('PRICE_ADD') && (
                                       <div className="flex gap-3 items-end">
                                         <input type="date" value={priceForm.effDate} onChange={e => setPriceForm({ ...priceForm, effDate: e.target.value })} className="bg-transparent border-b border-white/20 text-sm pb-2 outline-none focus:border-[#d4af37]" />
@@ -276,7 +294,7 @@ export default function ProductManagement() {
           </div>
         </div>
 
-        {/* ==================== MODALS ==================== */}
+        {/* ==================== MODALS (Gated) ==================== */}
         {showAddModal && hasRight('PRD_ADD') && (
           <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-6">
             <div className="bg-[#0a0a0c] border border-white/10 w-full max-w-md p-10 rounded-none">
@@ -308,7 +326,7 @@ export default function ProductManagement() {
                 <textarea placeholder="DESCRIPTION" required value={formData.description} className="w-full bg-transparent border-b border-white/20 pb-3 h-28 outline-none focus:border-[#d4af37]" onChange={e=>setFormData({...formData, description:e.target.value})} />
                 <div>
                   <label className="text-xs tracking-widest text-white/50 block mb-2">UNIT</label>
-                  <select value={formData.unit} onChange={e=>setFormData({...formData, unit:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]">
+                  <select value={formData.unit} onChange={e=>setFormData({...formData, unit:e.target.value})} className="w-full bg-transparent border-b border-white/20 text-lg outline-none focus:border-[#d4af37] bg-black">
                     <option value="ea">EA</option><option value="pc">PC</option><option value="mtr">MTR</option><option value="pkg">PKG</option><option value="ltr">LTR</option>
                   </select>
                 </div>

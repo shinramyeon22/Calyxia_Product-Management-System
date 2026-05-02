@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import Navbar from '../components/Navbar';
 import { Link } from 'react-router-dom'; 
+import { useRights } from '../context/UserRightsContext';
 
 export default function Products() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { hasRight, loading: rightsLoading } = useRights();
 
   useEffect(() => {
     async function getProducts() {
