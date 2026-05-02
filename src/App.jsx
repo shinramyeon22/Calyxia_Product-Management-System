@@ -7,6 +7,7 @@ import Products from './pages/Products';
 import AdminDashboard from './pages/AdminDashboard';
 import ProductManagement from './pages/ProductManagement';
 import ProductDetails from './pages/ProductDetails';
+import DeletedItemsPage from './pages/DeletedItemsPage';
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const { session, user, loading } = useAuth();
@@ -16,7 +17,9 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   }
 
   if (!session) return <Navigate to="/login" replace />;
-  if (requireAdmin && user?.user_type !== 'ADMIN') return <Navigate to="/products" replace />;
+  if (requireAdmin && !['ADMIN', 'SUPERADMIN'].includes((user?.user_type || user?.raw_user_meta_data?.user_type || '').toUpperCase())) {
+    return <Navigate to="/products" replace />;
+  }
 
   return children;
 };
@@ -33,6 +36,7 @@ function App() {
 
       <Route path="/admin" element={<ProtectedRoute requireAdmin={true}><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/products" element={<ProtectedRoute requireAdmin={true}><ProductManagement /></ProtectedRoute>} />
+      <Route path="/deleted-items" element={<ProtectedRoute requireAdmin={true}><DeletedItemsPage /></ProtectedRoute>} />
 
       <Route path="/" element={<Navigate to="/products" replace />} />
       <Route path="*" element={<Navigate to="/login" replace />} />

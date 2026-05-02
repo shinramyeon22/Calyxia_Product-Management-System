@@ -9,7 +9,11 @@ export default function Products() {
 
   useEffect(() => {
     async function getProducts() {
-      const { data } = await supabase.from('product').select('*');
+      const { data } = await supabase
+        .from('product')
+        .select('*')
+        .eq('record_status', 'A')
+        .order('id', { ascending: true });
       setProducts(data || []);
       setLoading(false);
     }
@@ -46,7 +50,7 @@ export default function Products() {
                 <h2 className="serif-font text-5xl md:text-6xl italic mt-6 mb-8 leading-none">{p.name}</h2>
                 <p className="text-white/70 leading-relaxed mb-10">{p.description}</p>
                 
-                <div className="text-4xl text-[#d4af37] mb-12">₱{p.price.toLocaleString()}</div>
+                <div className="text-4xl text-[#d4af37] mb-12">₱{p.price ? Number(p.price).toLocaleString() : '0'}</div>
 
                 <Link 
                   to={`/product/${p.id}`} 

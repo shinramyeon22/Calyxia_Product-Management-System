@@ -10,7 +10,12 @@ export default function ProductDetails() {
 
   useEffect(() => {
     async function fetchProduct() {
-      const { data } = await supabase.from('product').select('*').eq('id', id).single();
+      const { data } = await supabase
+        .from('product')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
       setProduct(data);
       setLoading(false);
     }
@@ -46,7 +51,7 @@ export default function ProductDetails() {
         <div className="flex flex-col justify-center">
           <span className="text-[#d4af37] text-xs tracking-widest">INSTITUTIONAL ASSET</span>
           <h1 className="serif-font text-6xl md:text-7xl italic mt-6 leading-none">{product.name}</h1>
-          <div className="text-5xl text-[#d4af37] mt-10 mb-12">₱{product.price.toLocaleString()}</div>
+          <div className="text-5xl text-[#d4af37] mt-10 mb-12">₱{product.price ? Number(product.price).toLocaleString() : '0'}</div>
           
           <p className="text-white/70 text-lg leading-relaxed">{product.description}</p>
 
