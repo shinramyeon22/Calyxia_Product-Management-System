@@ -9,7 +9,7 @@ export const getProducts = async (userType = 'USER') => {
   try {
     let query = supabase
       .from('product')
-      .select('prodcode, description, unit, record_status, stamp')
+      .select('prodcode, name, description, unit, price, stock, image_url, record_status, stamp, created_at')
       .order('prodcode', { ascending: true });
 
     // USER only sees ACTIVE records (per spec)
@@ -33,8 +33,12 @@ export const addProduct = async (productData, userId) => {
     
     const { data, error } = await supabase.from('product').insert([{
       prodcode: productData.prodcode,
+      name: productData.name,
       description: productData.description,
       unit: productData.unit || 'ea',
+      price: productData.price === '' || productData.price == null ? null : parseFloat(productData.price),
+      stock: productData.stock == null ? 0 : Number(productData.stock),
+      image_url: productData.image_url || null,
       record_status: 'ACTIVE',
       stamp
     }]).select().single();
@@ -52,8 +56,12 @@ export const updateProduct = async (prodcode, productData, userId) => {
     const stamp = `EDITED ${userId || 'system'} ${new Date().toISOString().slice(0, 16)}`;
     
     const { data, error } = await supabase.from('product').update({
+      name: productData.name,
       description: productData.description,
       unit: productData.unit,
+      price: productData.price === '' || productData.price == null ? null : parseFloat(productData.price),
+      stock: productData.stock == null ? 0 : Number(productData.stock),
+      image_url: productData.image_url || null,
       stamp
     }).eq('prodcode', prodcode).select().single();
 
@@ -97,6 +105,30 @@ export const recoverProduct = async (prodcode, userId) => {
     console.error('Error recovering product:', error);
     throw error;
   }
+};
+
+// =====================================================
+// Image upload (Supabase Storage)
+// Bucket name is assumed to be: product-images
+// =====================================================
+export const uploadProductImage = async (file, prodcode) => {
+  if (!file) throw new Error('No file selected');
+  const safeCode = String(prodcode || 'product').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const ext = (file.name?.split('.').pop() || 'jpg').toLowerCase();
+  const objectPath = `${safeCode}/${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabase
+    .storage
+    .from('product-images')
+    .upload(objectPath, file, { upsert: true, contentType: file.type });
+
+  if (uploadError) {
+    throw new Error(uploadError.message || 'Image upload failed (check bucket "product-images")');
+  }
+
+  const { data } = supabase.storage.from('product-images').getPublicUrl(objectPath);
+  if (!data?.publicUrl) throw new Error('Could not get public URL for uploaded image');
+  return data.publicUrl;
 };
 
 // Price History

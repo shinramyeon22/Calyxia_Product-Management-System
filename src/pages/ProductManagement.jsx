@@ -5,7 +5,7 @@ import { useRights } from '../context/UserRightsContext';
 import { useToast } from '../context/useToast';
 import { 
   getProducts, addProduct, updateProduct, softDeleteProduct, 
-  getPriceHistory, addPriceEntry, getCurrentPrice 
+  getPriceHistory, addPriceEntry, getCurrentPrice
 } from '../services/productService';
 
 import Navbar from '../components/Navbar';
@@ -25,7 +25,8 @@ export default function ProductManagement() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  const [formData, setFormData] = useState({ name: '', description: '', unit: 'ea', price: '', stock: 0, image_url: '' });
+  const [formData, setFormData] = useState({ prodcode: '', name: '', description: '', unit: 'ea', price: '', stock: 0, image_url: '' });
+  const [imagePreview, setImagePreview] = useState('');
   const [priceForm, setPriceForm] = useState({ effDate: '', unitPrice: '' });
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -79,7 +80,8 @@ export default function ProductManagement() {
 
   const openAddModal = () => {
     if (!hasRight('PRD_ADD')) return; 
-    setFormData({ name: '', description: '', unit: 'ea', price: '', stock: 0, image_url: '' });
+    setFormData({ prodcode: '', name: '', description: '', unit: 'ea', price: '', stock: 0, image_url: '' });
+    setImagePreview('');
     setShowAddModal(true);
   };
 
@@ -87,6 +89,7 @@ export default function ProductManagement() {
     if (!hasRight('PRD_EDIT')) return;
     setSelectedProduct(p);
     setFormData({ 
+      prodcode: p.prodcode || '',
       name: p.name || '', 
       description: p.description || '', 
       unit: p.unit || 'ea',
@@ -94,7 +97,28 @@ export default function ProductManagement() {
       stock: p.stock || 0,
       image_url: p.image_url || ''
     });
+    setImagePreview(p.image_url || '');
     setShowEditModal(true);
+  };
+
+  const normalizeImageUrl = (rawUrl, prodcode) => {
+    // 1. If URL is empty but we have a known asset for this code, use it
+    if (!rawUrl && ASSET_LIBRARY[prodcode]) {
+      return ASSET_LIBRARY[prodcode];
+    }
+    
+    if (!rawUrl) return '';
+
+    try {
+      const u = new URL(rawUrl);
+      const isGoogleImgRes = u.hostname.includes('google.') && u.pathname.includes('/imgres');
+      if (isGoogleImgRes) {
+        return u.searchParams.get('imgurl') || rawUrl;
+      }
+      return rawUrl;
+    } catch {
+      return rawUrl;
+    }
   };
 
   const openDeleteDialog = (p) => {
@@ -106,7 +130,8 @@ export default function ProductManagement() {
   const handleAddProduct = async (e) => {
     e.preventDefault();
     try {
-      await addProduct(formData);
+      const imageUrl = normalizeImageUrl(formData.image_url || '');
+      await addProduct({ ...formData, image_url: imageUrl }, user?.id);
       setShowAddModal(false);
       fetchProducts();
       showToast('Asset created successfully!', 'success');
@@ -118,7 +143,8 @@ export default function ProductManagement() {
   const handleEditProduct = async (e) => {
     e.preventDefault();
     try {
-      await updateProduct(selectedProduct.prodcode, formData);
+      const imageUrl = normalizeImageUrl(formData.image_url || '');
+      await updateProduct(selectedProduct.prodcode, { ...formData, image_url: imageUrl }, user?.id);
       setShowEditModal(false);
       setSelectedProduct(null);
       fetchProducts();
@@ -130,7 +156,7 @@ export default function ProductManagement() {
 
   const handleSoftDelete = async () => {
     try {
-      await softDeleteProduct(selectedProduct.prodcode);
+      await softDeleteProduct(selectedProduct.prodcode, user?.id);
       setShowDeleteDialog(false);
       setSelectedProduct(null);
       fetchProducts();
@@ -357,9 +383,170 @@ export default function ProductManagement() {
           </div>
         </div>
 
-        {/* Modals (unchanged) */}
-        {/* Add Modal, Edit Modal, Delete Dialog - same as before */}
-        {/* ... (Keep your existing modal code here) ... */}
+        {/* Modals */}
+        {(showAddModal || showEditModal) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div className="absolute inset-0 bg-black/70" onClick={() => { setShowAddModal(false); setShowEditModal(false); }} />
+            <div className="relative w-full max-w-2xl border border-white/10 bg-[#070707] p-10">
+              <div className="flex items-end justify-between mb-8">
+                <div>
+                  <div className="text-xs tracking-[0.5em] text-white/50">
+                    {showAddModal ? 'NEW ASSET' : 'EDIT ASSET'}
+                  </div>
+                  <div className="serif-font text-4xl italic mt-2">
+                    {showAddModal ? 'Create Product' : 'Update Product'}
+                  </div>
+                </div>
+                <button
+                  className="text-xs tracking-widest text-white/60 hover:text-white"
+                  onClick={() => { setShowAddModal(false); setShowEditModal(false); }}
+                >
+                  CLOSE
+                </button>
+              </div>
+
+              <form onSubmit={showAddModal ? handleAddProduct : handleEditProduct} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[10px] tracking-[0.4em] text-white/50 mb-2">PROD CODE</label>
+                    <input
+                      value={formData.prodcode}
+                      onChange={(e) => setFormData(prev => ({ ...prev, prodcode: e.target.value }))}
+                      disabled={showEditModal}
+                      required
+                      className="w-full bg-transparent border border-white/20 px-5 py-4 text-sm tracking-widest focus:border-[#d4af37] outline-none disabled:opacity-60"
+                      placeholder="e.g. PRD-0001"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] tracking-[0.4em] text-white/50 mb-2">NAME</label>
+                    <input
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full bg-transparent border border-white/20 px-5 py-4 text-sm tracking-widest focus:border-[#d4af37] outline-none"
+                      placeholder="Product name"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] tracking-[0.4em] text-white/50 mb-2">DESCRIPTION</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    rows={4}
+                    className="w-full bg-transparent border border-white/20 px-5 py-4 text-sm focus:border-[#d4af37] outline-none"
+                    placeholder="Description"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-[10px] tracking-[0.4em] text-white/50 mb-2">UNIT</label>
+                    <input
+                      value={formData.unit}
+                      onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
+                      className="w-full bg-transparent border border-white/20 px-5 py-4 text-sm tracking-widest focus:border-[#d4af37] outline-none"
+                      placeholder="ea"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] tracking-[0.4em] text-white/50 mb-2">PRICE</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                      className="w-full bg-transparent border border-white/20 px-5 py-4 text-sm tracking-widest focus:border-[#d4af37] outline-none"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] tracking-[0.4em] text-white/50 mb-2">STOCK</label>
+                    <input
+                      type="number"
+                      value={formData.stock}
+                      onChange={(e) => setFormData(prev => ({ ...prev, stock: e.target.value }))}
+                      className="w-full bg-transparent border border-white/20 px-5 py-4 text-sm tracking-widest focus:border-[#d4af37] outline-none"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                  <div>
+                    <label className="block text-[10px] tracking-[0.4em] text-white/50 mb-2">IMAGE URL (optional)</label>
+                    <input
+                      value={formData.image_url}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setFormData(prev => ({ ...prev, image_url: v }));
+                        setImagePreview(normalizeImageUrl(v));
+                      }}
+                      className="w-full bg-transparent border border-white/20 px-5 py-4 text-sm focus:border-[#d4af37] outline-none"
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div className="border border-white/10 bg-black/40 p-4">
+                    <div className="text-[10px] tracking-[0.4em] text-white/50 mb-3">PREVIEW</div>
+                    <img
+                      src={imagePreview || 'https://via.placeholder.com/800x600/111/ddd?text=No+Image'}
+                      alt="Preview"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://via.placeholder.com/800x600/111/ddd?text=Image+Unavailable';
+                      }}
+                      className="w-full h-56 object-contain"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddModal(false); setShowEditModal(false); }}
+                    className="border border-white/20 px-8 py-4 text-xs tracking-widest text-white/70 hover:border-white/40 hover:text-white transition"
+                  >
+                    CANCEL
+                  </button>
+                  <button
+                    type="submit"
+                    className="border border-[#d4af37] px-10 py-4 text-xs tracking-widest text-[#d4af37] hover:bg-[#d4af37] hover:text-black transition-all"
+                  >
+                    {showAddModal ? 'CREATE' : 'SAVE'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {showDeleteDialog && selectedProduct && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div className="absolute inset-0 bg-black/70" onClick={() => setShowDeleteDialog(false)} />
+            <div className="relative w-full max-w-xl border border-white/10 bg-[#070707] p-10">
+              <div className="text-xs tracking-[0.5em] text-red-400/80">CONFIRM DELETION</div>
+              <div className="serif-font text-4xl italic mt-2">Move to Deleted</div>
+              <p className="mt-6 text-white/60 text-sm leading-relaxed">
+                This will mark <span className="text-white">{selectedProduct.name || selectedProduct.prodcode}</span> as inactive (soft delete).
+              </p>
+              <div className="flex justify-end gap-4 mt-10">
+                <button
+                  onClick={() => setShowDeleteDialog(false)}
+                  className="border border-white/20 px-8 py-4 text-xs tracking-widest text-white/70 hover:border-white/40 hover:text-white transition"
+                >
+                  CANCEL
+                </button>
+                <button
+                  onClick={handleSoftDelete}
+                  className="border border-red-400/60 px-10 py-4 text-xs tracking-widest text-red-300 hover:bg-red-500 hover:text-black transition-all"
+                >
+                  DELETE
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </ErrorBoundary>

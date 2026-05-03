@@ -112,6 +112,9 @@ export default function Products() {
                     <img 
                       src={p.image_url || 'https://via.placeholder.com/1200x800/111/ddd?text=Calyxia+Asset'} 
                       alt={p.name} 
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://via.placeholder.com/1200x800/111/ddd?text=Image+Unavailable';
+                      }}
                       className="w-full h-[450px] object-contain transition-transform duration-[2s] group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>

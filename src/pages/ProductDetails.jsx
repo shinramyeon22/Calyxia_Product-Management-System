@@ -90,7 +90,14 @@ export default function ProductDetails() {
 
       <div className="max-w-7xl mx-auto px-8 grid md:grid-cols-2 gap-16">
         <div className="bg-black border border-white/10 p-12">
-          <img src={product.image_url} alt={product.name} className="w-full h-auto" />
+          <img
+            src={product.image_url || 'https://via.placeholder.com/1200x800/111/ddd?text=Calyxia+Asset'}
+            alt={product.name}
+            onError={(e) => {
+              e.currentTarget.src = 'https://via.placeholder.com/1200x800/111/ddd?text=Image+Unavailable';
+            }}
+            className="w-full h-auto"
+          />
         </div>
 
         <div className="flex flex-col justify-center">
