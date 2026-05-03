@@ -4,7 +4,7 @@ import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import { useRights } from '../context/UserRightsContext';
-import { acquireProduct, getProductStock, getPriceHistory } from '../services/productService';
+import { acquireProduct, getProductStock, getPriceHistory, getCurrentPrice } from '../services/productService';
 
 export default function ProductDetails() {
   const { id } = useParams();
@@ -14,7 +14,8 @@ export default function ProductDetails() {
   const [priceHistory, setPriceHistory] = useState([]);
   const [acquiring, setAcquiring] = useState(false);
   const [acquireSuccess, setAcquireSuccess] = useState(null);
-  
+  const [displayPrice, setDisplayPrice] = useState(null);
+
   const [loading, setLoading] = useState(true); 
   const { hasRight, loading: rightsLoading } = useRights();
   const canViewAudit = hasRight('AUDIT_VIEW');
@@ -26,14 +27,27 @@ export default function ProductDetails() {
         .select('*')
         .eq('id', id)
         .single();
-      
+
       setProduct(data);
-      const currentStock = await getProductStock(id);
+
+      const code = data?.prodcode;
+      if (!code) {
+        setStock(0);
+        setPriceHistory([]);
+        setDisplayPrice(data?.price ?? 0);
+        setLoading(false);
+        return;
+      }
+
+      const [currentStock, history, resolvedPrice] = await Promise.all([
+        getProductStock(code),
+        getPriceHistory(code),
+        getCurrentPrice(code)
+      ]);
+
       setStock(currentStock);
-      
-      const history = await getPriceHistory(id);
       setPriceHistory(history);
-      
+      setDisplayPrice(resolvedPrice ?? data?.price ?? 0);
       setLoading(false);
     }
     fetchProduct();
@@ -44,7 +58,7 @@ export default function ProductDetails() {
     setAcquiring(true);
     setAcquireSuccess(null);
     try {
-      const result = await acquireProduct(product.id, user.id, product.price || 0);
+      const result = await acquireProduct(product.prodcode);
       setStock(result.newStock);
       setAcquireSuccess({
         message: `Successfully acquired! Paid ₱${Number(result.pricePaid).toLocaleString()}`,
@@ -90,7 +104,11 @@ export default function ProductDetails() {
 
       <div className="max-w-7xl mx-auto px-8 grid md:grid-cols-2 gap-16">
         <div className="bg-black border border-white/10 p-12">
-          <img src={product.image_url} alt={product.name} className="w-full h-auto" />
+          <img
+            src={product.image_url?.trim() || 'https://via.placeholder.com/1200x800/111/ddd?text=Calyxia+Asset'}
+            alt={product.name || product.description || 'Asset'}
+            className="w-full h-auto"
+          />
         </div>
 
         <div className="flex flex-col justify-center">
@@ -105,10 +123,12 @@ export default function ProductDetails() {
             )}
           </div>
 
-          <h1 className="serif-font text-6xl md:text-7xl italic mt-6 leading-none">{product.name}</h1>
+          <h1 className="serif-font text-6xl md:text-7xl italic mt-6 leading-none">{product.description || product.name}</h1>
           
           <div className="mt-10 mb-8">
-            <div className="text-5xl text-[#d4af37] mb-4">₱{product.price ? Number(product.price).toLocaleString() : '0'}</div>
+            <div className="text-5xl text-[#d4af37] mb-4">
+              ₱{Number((displayPrice ?? product.price) ?? 0).toLocaleString()}
+            </div>
             
             <div>
               <div className="flex items-center justify-between text-xs tracking-widest text-white/50 mb-1.5">

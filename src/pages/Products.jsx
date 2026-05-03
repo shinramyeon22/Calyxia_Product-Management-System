@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
+import { enrichProductsWithCurrentPrice } from '../services/productService';
 import Navbar from '../components/Navbar';
 import { Link } from 'react-router-dom'; 
 import { useAuth } from '../context/AuthContext';
@@ -14,19 +15,24 @@ export default function Products() {
 
   useEffect(() => {
     async function getProducts() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('product')
         .select('*')
         .eq('record_status', 'A')
         .order('id', { ascending: true });
-      setProducts(data || []);
+      if (error) {
+        console.error(error);
+      }
+      const list = await enrichProductsWithCurrentPrice(data || []);
+      setProducts(list);
       setLoading(false);
     }
     getProducts();
   }, []);
 
   const filteredProducts = products.filter(p => 
-    (p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     p.prodcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
      p.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
      p.id?.toString().includes(searchTerm))
   );
@@ -61,11 +67,11 @@ export default function Products() {
           <div className="text-center py-20 text-white/50">No assets match your search.</div>
         ) : (
           filteredProducts.map((p, index) => (
-            <section key={p.id} className={`flex flex-col lg:flex-row gap-16 mb-32 ${index % 2 === 1 ? 'lg:flex-row-reverse' : ''}`}>
+            <section key={p.id ?? p.prodcode} className={`flex flex-col lg:flex-row gap-16 mb-32 ${index % 2 === 1 ? 'lg:flex-row-reverse' : ''}`}>
               <div className="lg:w-3/5 bg-black border border-white/10 p-8 overflow-hidden group relative">
                 <img 
                   src={p.image_url || 'https://via.placeholder.com/1200x800/111/ddd?text=Calyxia+Asset'} 
-                  alt={p.name} 
+                  alt={p.description || p.name || p.prodcode} 
                   className="w-full h-auto object-contain transition-transform duration-700 group-hover:scale-[1.08]"
                 />
                 {(p.stock || 0) > 0 && (
@@ -77,11 +83,11 @@ export default function Products() {
 
               <div className="lg:w-2/5 flex flex-col justify-center">
                 <span className="text-xs tracking-widest text-white/50">SELECTION NO. 0{index + 1} • ID: {p.id}</span>
-                <h2 className="serif-font text-5xl md:text-6xl italic mt-6 mb-8 leading-none">{p.name}</h2>
+                <h2 className="serif-font text-5xl md:text-6xl italic mt-6 mb-8 leading-none">{p.description || p.name || '—'}</h2>
                 <p className="text-white/70 leading-relaxed mb-10 line-clamp-3">{p.description}</p>
                 
                 <div className="flex items-end gap-4 mb-12">
-                  <div className="text-4xl text-[#d4af37]">₱{p.price ? Number(p.price).toLocaleString() : '0'}</div>
+                  <div className="text-4xl text-[#d4af37]">₱{Number(p.price ?? 0).toLocaleString()}</div>
                   <div className="text-xs text-white/50 pb-1">/ {p.unit || 'ea'} • {p.stock || 0} available</div>
                 </div>
 

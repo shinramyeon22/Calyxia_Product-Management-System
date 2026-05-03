@@ -53,6 +53,36 @@ ALTER TABLE priceHist
 ADD COLUMN record_status CHAR(1) DEFAULT 'A' CHECK (record_status IN ('A','I')),
 ADD COLUMN stamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
+-- Product image URL (inventory / storefront)
+ALTER TABLE product ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE product ADD COLUMN IF NOT EXISTS stock INTEGER DEFAULT 0;
+ALTER TABLE product ADD COLUMN IF NOT EXISTS price NUMERIC(10,2);
+
+-- Supabase RLS for price history (needed for addPriceEntry from client)
+ALTER TABLE priceHist ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "pricehist_select_authenticated" ON priceHist;
+CREATE POLICY "pricehist_select_authenticated"
+ON priceHist
+FOR SELECT
+TO authenticated
+USING (true);
+
+DROP POLICY IF EXISTS "pricehist_insert_authenticated" ON priceHist;
+CREATE POLICY "pricehist_insert_authenticated"
+ON priceHist
+FOR INSERT
+TO authenticated
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "pricehist_update_authenticated" ON priceHist;
+CREATE POLICY "pricehist_update_authenticated"
+ON priceHist
+FOR UPDATE
+TO authenticated
+USING (true)
+WITH CHECK (true);
+
 
 
 

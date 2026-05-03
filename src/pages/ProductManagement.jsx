@@ -25,8 +25,9 @@ export default function ProductManagement() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  const [formData, setFormData] = useState({ name: '', description: '', unit: 'ea', price: '', stock: 0, image_url: '' });
+  const [formData, setFormData] = useState({ prodcode: '', description: '', unit: 'ea', price: '', stock: 0, image_url: '' });
   const [priceForm, setPriceForm] = useState({ effDate: '', unitPrice: '' });
+  const [savingAsset, setSavingAsset] = useState(false);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState('all');
@@ -78,17 +79,17 @@ export default function ProductManagement() {
   }, [priceHistories]);
 
   const openAddModal = () => {
-    if (!hasRight('PRD_ADD')) return; 
-    setFormData({ name: '', description: '', unit: 'ea', price: '', stock: 0, image_url: '' });
+    if (!hasRight('PRD_ADD')) return;
+    setFormData({ prodcode: '', description: '', unit: 'ea', price: '', stock: 0, image_url: '' });
     setShowAddModal(true);
   };
 
   const openEditModal = (p) => {
     if (!hasRight('PRD_EDIT')) return;
     setSelectedProduct(p);
-    setFormData({ 
-      name: p.name || '', 
-      description: p.description || '', 
+    setFormData({
+      prodcode: p.prodcode || '',
+      description: p.description || '',
       unit: p.unit || 'ea',
       price: p.price || '',
       stock: p.stock || 0,
@@ -105,20 +106,30 @@ export default function ProductManagement() {
 
   const handleAddProduct = async (e) => {
     e.preventDefault();
+    if (savingAsset) return;
+    const pc = formData.prodcode.trim().slice(0, 6).toUpperCase();
+    const desc = formData.description.trim().slice(0, 30);
+    if (!pc) return showToast('Product code required (max 6 characters)', 'error');
+    if (!desc) return showToast('Description required (max 30 characters)', 'error');
+    setSavingAsset(true);
     try {
-      await addProduct(formData);
+      await addProduct({ ...formData, prodcode: pc, description: desc }, user?.id);
       setShowAddModal(false);
       fetchProducts();
       showToast('Asset created successfully!', 'success');
     } catch (err) {
       showToast('Add failed: ' + err.message, 'error');
+    } finally {
+      setSavingAsset(false);
     }
   };
 
   const handleEditProduct = async (e) => {
     e.preventDefault();
     try {
-      await updateProduct(selectedProduct.prodcode, formData);
+      const desc = formData.description.trim().slice(0, 30);
+      if (!desc) return showToast('Description required (max 30 characters)', 'error');
+      await updateProduct(selectedProduct.prodcode, { ...formData, description: desc }, user?.id);
       setShowEditModal(false);
       setSelectedProduct(null);
       fetchProducts();
@@ -130,7 +141,7 @@ export default function ProductManagement() {
 
   const handleSoftDelete = async () => {
     try {
-      await softDeleteProduct(selectedProduct.prodcode);
+      await softDeleteProduct(selectedProduct.prodcode, user?.id);
       setShowDeleteDialog(false);
       setSelectedProduct(null);
       fetchProducts();
@@ -144,7 +155,7 @@ export default function ProductManagement() {
     if (!hasRight('PRICE_ADD')) return;
     if (!priceForm.effDate || !priceForm.unitPrice) return showToast('Date and price required', 'error');
     try {
-      await addPriceEntry(prodcode, priceForm.effDate, priceForm.unitPrice);
+      await addPriceEntry(prodcode, priceForm.effDate, priceForm.unitPrice, user?.id);
       const h = await getPriceHistory(prodcode);
       setPriceHistories(prev => ({ ...prev, [prodcode]: h }));
       const np = await getCurrentPrice(prodcode);
@@ -221,7 +232,6 @@ export default function ProductManagement() {
                 <thead className="bg-black/50 border-b border-white/10">
                   <tr className="text-xs tracking-widest text-white/60">
                     <th className="px-8 py-6">ID</th>
-                    <th className="px-8 py-6">NAME</th>
                     <th className="px-8 py-6">DESCRIPTION</th>
                     <th className="px-8 py-6">UNIT</th>
                     <th className="px-8 py-6">STOCK</th>
@@ -234,8 +244,8 @@ export default function ProductManagement() {
                 <tbody className="divide-y divide-white/10">
                   {(() => {
                     const filtered = products
-                      .filter(p => 
-                        (p.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                      .filter(p =>
+                        (p.prodcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          p.description?.toLowerCase().includes(searchTerm.toLowerCase()))
                       )
                       .filter(p => {
@@ -247,7 +257,7 @@ export default function ProductManagement() {
                     if (filtered.length === 0) {
                       return (
                         <tr>
-                          <td colSpan={canViewAudit ? 9 : 8} className="px-8 py-16 text-center text-white/50">
+                          <td colSpan={canViewAudit ? 8 : 7} className="px-8 py-16 text-center text-white/50">
                             No assets match your search or filter.
                           </td>
                         </tr>
@@ -256,21 +266,20 @@ export default function ProductManagement() {
 
                     return filtered.map(p => {
                       const isExpanded = expandedRows.has(p.prodcode);
-                      const currPrice = currentPrices[p.prodcode] || 0;
+                      const currPrice = currentPrices[p.prodcode];
                       return (
                         <React.Fragment key={p.prodcode}>
                           <tr className="hover:bg-white/5 transition">
                             <td className="px-8 py-8 font-mono text-sm">{p.prodcode}</td>
-                            <td className="px-8 py-8">{p.name || '—'}</td>
                             <td className="px-8 py-8 text-sm max-w-xs truncate">{p.description || '—'}</td>
                             <td className="px-8 py-8 text-xs uppercase tracking-widest text-white/60">{p.unit || '—'}</td>
                             <td className="px-8 py-8 font-mono text-sm text-emerald-400">{p.stock || 0}</td>
                             <td className="px-8 py-8">
                               {p.image_url ? (
-                                <img src={p.image_url} alt={p.name} className="w-12 h-12 object-cover border border-white/20" />
+                                <img src={p.image_url} alt="" className="w-12 h-12 object-cover border border-white/20" />
                               ) : '—'}
                             </td>
-                            <td className="px-8 py-8 text-[#d4af37]">₱{Number(currPrice || p.price || 0).toLocaleString()}</td>
+                            <td className="px-8 py-8 text-[#d4af37]">₱{Number((currPrice ?? p.price) ?? 0).toLocaleString()}</td>
                             {canViewAudit && <td className="px-8 py-8 text-xs text-white/50">{p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}</td>}
                             <td className="px-8 py-8 text-right">
                               <div className="flex items-center justify-end gap-4">
@@ -288,12 +297,12 @@ export default function ProductManagement() {
                           </tr>
                           {isExpanded && (
                             <tr className="bg-black/40">
-                              <td colSpan={canViewAudit ? 9 : 8} className="px-8 py-8">
+                              <td colSpan={canViewAudit ? 8 : 7} className="px-8 py-8">
                                 <div className="pl-4 border-l border-white/20">
                                   <div className="flex justify-between items-center mb-6">
                                     <div>
                                       <span className="text-xs tracking-[0.5em] text-white/50">PRICE HISTORY</span>
-                                      <div className="text-lg text-white mt-1">{p.name}</div>
+                                      <div className="text-lg text-white mt-1">{p.description}</div>
                                     </div>
                                     {hasRight('PRICE_ADD') && (
                                       <div className="flex gap-3 items-end">
@@ -349,8 +358,14 @@ export default function ProductManagement() {
                 <h2 className="serif-font text-5xl italic tracking-tighter">Create Asset</h2>
               </div>
               <form onSubmit={handleAddProduct} className="space-y-8">
-                <input type="text" placeholder="NAME" required value={formData.name} onChange={e=>setFormData({...formData, name:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]" />
-                <textarea placeholder="DESCRIPTION" required value={formData.description} onChange={e=>setFormData({...formData, description:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 h-24 outline-none focus:border-[#d4af37]" />
+                <div>
+                  <label className="text-xs tracking-widest text-white/50 block mb-2">PRODUCT CODE (MAX 6)</label>
+                  <input type="text" placeholder="EG. XX0001" required maxLength={6} value={formData.prodcode} onChange={e=>setFormData({...formData, prodcode:e.target.value.toUpperCase()})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg font-mono outline-none focus:border-[#d4af37]" />
+                </div>
+                <div>
+                  <label className="text-xs tracking-widest text-white/50 block mb-2">DESCRIPTION (MAX 30)</label>
+                  <textarea placeholder="SHORT PRODUCT NAME OR LABEL" required maxLength={30} value={formData.description} onChange={e=>setFormData({...formData, description:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 h-24 outline-none focus:border-[#d4af37]" />
+                </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <label className="text-xs tracking-widest text-white/50 block mb-2">UNIT</label>
@@ -373,7 +388,7 @@ export default function ProductManagement() {
                 </div>
                 <div className="flex gap-4 pt-4">
                   <button type="button" onClick={()=>setShowAddModal(false)} className="flex-1 py-4 border border-white/30 hover:bg-white/5 transition">CANCEL</button>
-                  <button type="submit" className="flex-1 py-4 bg-[#d4af37] text-black font-medium tracking-widest hover:bg-white transition">CREATE ASSET</button>
+                  <button type="submit" disabled={savingAsset} className="flex-1 py-4 bg-[#d4af37] text-black font-medium tracking-widest hover:bg-white transition disabled:opacity-40 disabled:pointer-events-none">{savingAsset ? 'SAVING…' : 'CREATE ASSET'}</button>
                 </div>
               </form>
             </div>
@@ -390,8 +405,11 @@ export default function ProductManagement() {
                 <h2 className="serif-font text-5xl italic tracking-tighter">Update Records</h2>
               </div>
               <form onSubmit={handleEditProduct} className="space-y-8">
-                <div><label className="text-xs tracking-widest text-white/50 block mb-1">NAME</label><div className="text-lg font-mono text-white/70">{formData.name}</div></div>
-                <textarea placeholder="DESCRIPTION" required value={formData.description} onChange={e=>setFormData({...formData, description:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 h-24 outline-none focus:border-[#d4af37]" />
+                <div><label className="text-xs tracking-widest text-white/50 block mb-1">PRODUCT CODE</label><div className="text-lg font-mono text-white/70">{formData.prodcode}</div></div>
+                <div>
+                  <label className="text-xs tracking-widest text-white/50 block mb-2">DESCRIPTION (MAX 30)</label>
+                  <textarea placeholder="SHORT PRODUCT NAME OR LABEL" required maxLength={30} value={formData.description} onChange={e=>setFormData({...formData, description:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 h-24 outline-none focus:border-[#d4af37]" />
+                </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <label className="text-xs tracking-widest text-white/50 block mb-2">UNIT</label>
