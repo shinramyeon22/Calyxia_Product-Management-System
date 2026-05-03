@@ -45,82 +45,113 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-[#050505] overflow-hidden">
-      {/* Left Visual Panel */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-[#0a0a0c] items-center justify-center overflow-hidden border-r border-white/5">
-        <div className="absolute inset-0 opacity-70">
-          <img 
-            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070" 
-            alt="Luxury Showroom" 
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent" />
-        </div>
-        
-        <div className="relative z-10 text-center px-12">
-          <h2 className="serif-font text-[180px] leading-none text-white/10 select-none">CX</h2>
-          <p className="text-[#d4af37] text-xs tracking-[0.5em] mt-6">THE PRIVATE COLLECTION</p>
+    <div className="min-h-screen flex bg-[#0a0c10] text-white overflow-hidden">
+
+      {/* LEFT SIDE - Background Image */}
+      <div className="hidden lg:flex w-1/2 relative items-center justify-center">
+        <img
+          src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070"
+          className="absolute inset-0 w-full h-full object-cover opacity-40"
+          alt="Store"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-black/60 to-[#0a0c10]" />
+
+        <div className="relative z-10 text-center">
+          <h1 className="text-[11rem] serif-font italic bg-gradient-to-b from-[#e8d9a8] to-[#a67c00] bg-clip-text text-transparent drop-shadow-2xl">
+            CX
+          </h1>
+          <p className="text-[#d4af37] tracking-[0.7em] text-sm mt-[-10px]">
+            THE PRIVATE COLLECTION
+          </p>
         </div>
       </div>
 
-      {/* Right Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16">
-        <div className="w-full max-w-md">
+      {/* RIGHT SIDE - Login Panel */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-0 relative">
+
+        {/* Subtle top glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#f3d995] opacity-10 blur-[120px] pointer-events-none" />
+
+        <div className="w-full max-w-xl px-8 lg:px-16 py-20 relative z-10">   {/* Increased width & padding */}
+
+          {/* Brand */}
           <div className="text-center mb-16">
-            <h1 className="serif-font text-6xl italic tracking-tighter">Calyxia</h1>
-            <p className="text-white/50 mt-3 text-sm tracking-widest">MANAGEMENT ENTERPRISE</p>
+            <h1 className="text-7xl md:text-8xl serif-font italic text-[#f3d995] drop-shadow-[0_0_35px_rgba(243,217,149,0.5)]">
+              Calyxia
+            </h1>
+            <p className="text-xs tracking-[0.6em] text-white/40 mt-4">
+              MANAGEMENT ENTERPRISE
+            </p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-950/50 border border-red-500/50 text-red-400 text-sm tracking-widest">
+            <div className="mb-8 text-red-400 text-center text-sm bg-red-500/10 border border-red-500/30 py-3 rounded">
               {error}
             </div>
           )}
 
+          {/* Google Button */}
           <button
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full bg-white text-black py-5 rounded-sm flex items-center justify-center gap-3 text-sm tracking-widest hover:bg-zinc-200 transition disabled:opacity-70"
+            className="w-full bg-white hover:bg-gray-100 text-black py-5 text-lg font-medium rounded-xl flex items-center justify-center gap-4 transition-all duration-300 shadow-xl shadow-black/50"
           >
+            <img
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+              className="w-6 h-6"
+              alt="Google"
+            />
             Continue with Google
           </button>
 
-          <div className="my-10 flex items-center gap-4">
-            <div className="flex-1 h-px bg-white/10"></div>
-            <span className="text-xs text-white/40 tracking-widest">OR</span>
-            <div className="flex-1 h-px bg-white/10"></div>
+          {/* Divider */}
+          <div className="flex items-center gap-6 my-12">
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            <span className="text-sm text-white/40 tracking-[3px] uppercase">OR</span>
+            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           </div>
 
-          <form onSubmit={handleEmailLogin} className="space-y-6">
-            <input 
-              type="email" 
-              placeholder="EMAIL ADDRESS" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-transparent border-b border-white/20 pb-4 text-white placeholder:text-white/40 focus:border-[#d4af37] outline-none text-sm tracking-widest"
-              required
-            />
-            <input 
-              type="password" 
-              placeholder="PASSWORD" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-transparent border-b border-white/20 pb-4 text-white placeholder:text-white/40 focus:border-[#d4af37] outline-none text-sm tracking-widest"
-              required
-            />
-            <button 
+          {/* Email Login Form */}
+          <form onSubmit={handleEmailLogin} className="space-y-10">
+            <div>
+              <input
+                type="email"
+                placeholder="EMAIL ADDRESS"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-transparent border-b border-white/30 pb-5 text-lg tracking-widest placeholder:text-white/40 focus:border-[#f3d995] outline-none transition-all"
+                required
+              />
+            </div>
+
+            <div>
+              <input
+                type="password"
+                placeholder="PASSWORD"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-transparent border-b border-white/30 pb-5 text-lg tracking-widest placeholder:text-white/40 focus:border-[#f3d995] outline-none transition-all"
+                required
+              />
+            </div>
+
+            <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#d4af37] text-black py-5 text-xs tracking-[0.125em] font-medium hover:bg-white transition disabled:opacity-70"
+              className="w-full py-5 text-lg font-semibold tracking-[2px] bg-gradient-to-r from-[#d4af37] via-[#f3d995] to-[#c9a22f] text-black rounded-xl shadow-2xl shadow-black/60 hover:brightness-110 active:scale-[0.985] transition-all duration-200"
             >
               {loading ? "SIGNING IN..." : "SIGN IN"}
             </button>
           </form>
 
-          <p className="text-center text-xs text-white/50 mt-12">
-            Don't have access?{' '}
-            <Link to="/register" className="text-[#d4af37] hover:underline">Register Identity</Link>
+          {/* Footer Link */}
+          <p className="text-center text-white/50 mt-14 text-sm">
+            Don’t have access?{" "}
+            <Link to="/register" className="text-[#d4af37] hover:text-[#f3d995] transition">
+              Request Identity
+            </Link>
           </p>
+
         </div>
       </div>
     </div>

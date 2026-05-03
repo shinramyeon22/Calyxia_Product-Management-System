@@ -1,22 +1,25 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 
 export default function Navbar() {
   const { user, loading, signOut } = useAuth();
-  const navigate = useNavigate();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
       await signOut();
-      navigate('/login');
+      navigate('/login'); // Make sure you import useNavigate if not already
     } catch (error) {
       console.error("Logout failed:", error);
     }
   };
 
   const userInitial = user?.email?.[0]?.toUpperCase() || 'U';
+
+  // Active link checker
+  const isActive = (path) => location.pathname === path;
 
   if (loading) {
     return <nav className="fixed top-0 left-0 right-0 z-50 h-20 bg-black/90 backdrop-blur-md border-b border-white/10" />;
@@ -31,17 +34,33 @@ export default function Navbar() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-10 text-sm tracking-[0.125em] uppercase">
-          <Link to="/products" className="hover:text-[#d4af37] transition-colors">Collection</Link>
+          <Link 
+            to="/products" 
+            className={`hover:text-[#d4af37] transition-colors ${isActive('/products') ? 'text-[#d4af37] border-b border-[#d4af37] pb-0.5' : ''}`}
+          >
+            Collection
+          </Link>
 
           {(user?.user_type === 'ADMIN' || user?.user_type === 'SUPERADMIN') && (
             <div className="flex items-center gap-8 border-l border-white/10 pl-8">
-              <Link to="/admin" className="hover:text-[#d4af37] transition-colors">Users</Link>
-              <Link to="/admin/products" className="text-[#d4af37] font-medium border-b border-[#d4af37] pb-0.5">Inventory</Link>
+              <Link 
+                to="/admin" 
+                className={`hover:text-[#d4af37] transition-colors ${isActive('/admin') ? 'text-[#d4af37] border-b border-[#d4af37] pb-0.5' : ''}`}
+              >
+                Users
+              </Link>
+              
+              <Link 
+                to="/admin/products" 
+                className={`hover:text-[#d4af37] transition-colors ${isActive('/admin/products') ? 'text-[#d4af37] border-b border-[#d4af37] pb-0.5' : ''}`}
+              >
+                Inventory
+              </Link>
             </div>
           )}
         </div>
 
-        {/* User + Actions */}
+        {/* User Info + Sign Out */}
         <div className="flex items-center gap-4">
           {user && (
             <div className="hidden md:flex items-center gap-3">
@@ -59,7 +78,7 @@ export default function Navbar() {
             SIGN OUT
           </button>
 
-          {/* Mobile Hamburger */}
+          {/* Mobile Menu Button */}
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden w-10 h-10 flex items-center justify-center text-[#d4af37] text-xl"
@@ -69,7 +88,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu Drawer */}
+      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-black/95 border-t border-white/10 px-8 py-8 text-sm tracking-widest">
           <div className="flex flex-col gap-6">
@@ -77,16 +96,13 @@ export default function Navbar() {
             
             {(user?.user_type === 'ADMIN' || user?.user_type === 'SUPERADMIN') && (
               <>
-                <Link to="/admin" className="hover:text-[#d4af37]" onClick={() => setMobileMenuOpen(false)}>User Registry</Link>
-                <Link to="/admin/products" className="hover:text-[#d4af37]" onClick={() => setMobileMenuOpen(false)}>Inventory Vault</Link>
+                <Link to="/admin" className="hover:text-[#d4af37]" onClick={() => setMobileMenuOpen(false)}>Users</Link>
+                <Link to="/admin/products" className="hover:text-[#d4af37]" onClick={() => setMobileMenuOpen(false)}>Inventory</Link>
               </>
             )}
             
             <div className="pt-6 border-t border-white/10">
-              <button 
-                onClick={handleLogout}
-                className="w-full py-4 border border-white/30 text-xs tracking-widest hover:border-[#d4af37] hover:text-[#d4af37] transition"
-              >
+              <button onClick={handleLogout} className="w-full py-4 border border-white/30 text-xs tracking-widest hover:border-[#d4af37] hover:text-[#d4af37]">
                 SIGN OUT
               </button>
             </div>
