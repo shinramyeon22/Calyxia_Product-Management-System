@@ -61,6 +61,19 @@ export default function ProductManagement() {
     fetchProducts();
   }, [fetchProducts]);
 
+  // ==================== BODY SCROLL LOCK FOR FIXED MODALS ====================
+  useEffect(() => {
+    const isAnyModalOpen = showEditModal || showDeleteDialog || showAddModal;
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'visible';
+    }
+    return () => {
+      document.body.style.overflow = 'visible';
+    };
+  }, [showEditModal, showDeleteDialog, showAddModal]);
+
   const toggleRow = useCallback(async (prodcode) => {
     setExpandedRows(prev => {
       const newSet = new Set(prev);
@@ -167,6 +180,23 @@ export default function ProductManagement() {
     }
   };
 
+  // ==================== IMAGE UPLOAD HANDLER (FIXED) ====================
+  const handleImageUpload = (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64String = event.target.result;
+      setFormData(prev => ({ ...prev, image_url: base64String }));
+
+      const previewId = type === 'edit' ? 'editImagePreview' : 'addImagePreview';
+      const preview = document.getElementById(previewId);
+      if (preview) preview.src = base64String;
+    };
+    reader.readAsDataURL(file);
+  };
+
   if (loading || rightsLoading) {
     return (
       <div className="min-h-screen bg-[#050505] text-white pt-20">
@@ -191,18 +221,18 @@ export default function ProductManagement() {
         <div className="flex">
           <Sidebar />
           <div className="flex-1 max-w-7xl mx-auto px-8 py-16">
-            <div className="flex justify-between items-end mb-12">
-              <div>
-                <span className="block text-[#d4af37] text-xs tracking-[0.5em]">INSTITUTIONAL CONTROL</span>
-                <h1 className="serif-font text-6xl italic tracking-tighter">Inventory Vault</h1>
-              </div>
+            <div className="flex justify-start items-end mb-12 gap-8">
               <div className="flex gap-4">
                 {hasRight('PRD_ADD') && (
                   <button onClick={openAddModal} className="border border-[#d4af37] text-[#d4af37] px-10 py-4 text-xs tracking-widest hover:bg-[#d4af37] hover:text-black transition-all">
                     + ADD NEW ASSET
                   </button>
                 )}
-                <button onClick={fetchProducts} className="border border-white/30 px-8 py-4 text-xs tracking-widest hover:border-[#d4af37] hover:text-[#d4af37] transition">REFRESH</button>
+                <button onClick={fetchProducts} className="border-2 border-[#d4af37] text-[#d4af37] px-8 py-4 text-xs tracking-widest hover:bg-[#d4af37] hover:text-black transition">REFRESH</button>
+              </div>
+              <div>
+                <span className="block text-[#d4af37] text-xs tracking-[0.5em]">INSTITUTIONAL CONTROL</span>
+                <h1 className="serif-font text-6xl italic tracking-tighter">Inventory Vault</h1>
               </div>
             </div>
 
@@ -348,15 +378,17 @@ export default function ProductManagement() {
 
         {/* ==================== MODALS ==================== */}
         
-        {/* Add Modal */}
+        {/* ==================== ADD MODAL (FIXED + RESPONSIVE) ==================== */}
         {showAddModal && hasRight('PRD_ADD') && (
-          <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[100] p-6" onClick={() => setShowAddModal(false)}>
-            <div className="bg-[#0a0a0c] border border-white/10 w-full max-w-md p-10 rounded-none relative" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto" onClick={() => setShowAddModal(false)}>
+            <div className="bg-[#0a0a0c] border border-white/10 w-full max-w-md sm:max-w-lg p-6 sm:p-10 rounded-none relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-white/50 hover:text-white text-3xl">×</button>
+              
               <div className="text-center mb-10">
                 <div className="text-[#d4af37] text-xs tracking-[0.5em] mb-2">NEW INSTITUTIONAL ASSET</div>
                 <h2 className="serif-font text-5xl italic tracking-tighter">Create Asset</h2>
               </div>
+
               <form onSubmit={handleAddProduct} className="space-y-8">
                 <div>
                   <label className="text-xs tracking-widest text-white/50 block mb-2">PRODUCT CODE (MAX 6)</label>
@@ -366,7 +398,7 @@ export default function ProductManagement() {
                   <label className="text-xs tracking-widest text-white/50 block mb-2">DESCRIPTION (MAX 30)</label>
                   <textarea placeholder="SHORT PRODUCT NAME OR LABEL" required maxLength={30} value={formData.description} onChange={e=>setFormData({...formData, description:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 h-24 outline-none focus:border-[#d4af37]" />
                 </div>
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div>
                     <label className="text-xs tracking-widest text-white/50 block mb-2">UNIT</label>
                     <select value={formData.unit} onChange={e=>setFormData({...formData, unit:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]">
@@ -382,10 +414,40 @@ export default function ProductManagement() {
                   <label className="text-xs tracking-widest text-white/50 block mb-2">PRICE (₱)</label>
                   <input type="number" step="0.01" value={formData.price} onChange={e=>setFormData({...formData, price:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]" />
                 </div>
+
+                {/* ========== FIXED IMAGE SECTION (ADD) ========== */}
                 <div>
-                  <label className="text-xs tracking-widest text-white/50 block mb-2">IMAGE URL</label>
-                  <input type="url" value={formData.image_url} onChange={e=>setFormData({...formData, image_url:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]" />
+                  <label className="text-xs tracking-widest text-white/50 block mb-2">PRODUCT IMAGE</label>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-shrink-0">
+                      <img 
+                        id="addImagePreview" 
+                        src={formData.image_url || 'https://via.placeholder.com/80x80/111/ddd?text=No+Image'} 
+                        className="w-16 h-16 object-cover border border-white/20 rounded" 
+                        alt="Preview" 
+                      />
+                    </div>
+                    <div>
+                      <button 
+                        type="button"
+                        onClick={() => document.getElementById('addImageUpload').click()}
+                        className="px-5 py-2 text-xs border border-white/30 hover:border-[#d4af37] hover:text-[#d4af37] transition"
+                      >
+                        UPLOAD NEW IMAGE
+                      </button>
+                      <input 
+                        type="file" 
+                        id="addImageUpload" 
+                        accept="image/*" 
+                        className="hidden"
+                        onChange={(e) => handleImageUpload(e, 'add')}
+                      />
+                      <p className="text-[10px] text-white/40 mt-1">JPG or PNG • Max 2MB</p>
+                    </div>
+                  </div>
                 </div>
+                {/* ========== END FIXED IMAGE SECTION ========== */}
+
                 <div className="flex gap-4 pt-4">
                   <button type="button" onClick={()=>setShowAddModal(false)} className="flex-1 py-4 border border-white/30 hover:bg-white/5 transition">CANCEL</button>
                   <button type="submit" disabled={savingAsset} className="flex-1 py-4 bg-[#d4af37] text-black font-medium tracking-widest hover:bg-white transition disabled:opacity-40 disabled:pointer-events-none">{savingAsset ? 'SAVING…' : 'CREATE ASSET'}</button>
@@ -395,60 +457,161 @@ export default function ProductManagement() {
           </div>
         )}
 
-        {/* Edit Modal */}
+        {/* ==================== EDIT MODAL - ON TOP + RESPONSIVE ==================== */}
         {showEditModal && selectedProduct && hasRight('PRD_EDIT') && (
-          <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[100] p-6" onClick={() => {setShowEditModal(false); setSelectedProduct(null);}}>
-            <div className="bg-[#0a0a0c] border border-white/10 w-full max-w-md p-10 rounded-none relative" onClick={e => e.stopPropagation()}>
-              <button onClick={() => {setShowEditModal(false); setSelectedProduct(null);}} className="absolute top-8 right-8 text-white/50 hover:text-white text-3xl">×</button>
+          <div 
+            className="fixed inset-0 bg-black/95 flex items-start justify-center z-[100] pt-12 p-4 sm:p-6" 
+            onClick={() => {setShowEditModal(false); setSelectedProduct(null);}}
+          >
+            <div 
+              className="bg-[#0a0a0c] border border-white/10 w-full max-w-md sm:max-w-lg p-6 sm:p-10 rounded-none relative shadow-2xl" 
+              onClick={e => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => {setShowEditModal(false); setSelectedProduct(null);}} 
+                className="absolute top-8 right-8 text-white/50 hover:text-white text-3xl transition-colors"
+              >
+                ×
+              </button>
+              
               <div className="text-center mb-10">
                 <div className="text-[#d4af37] text-xs tracking-[0.5em] mb-2">EDIT INSTITUTIONAL ASSET</div>
                 <h2 className="serif-font text-5xl italic tracking-tighter">Update Records</h2>
               </div>
+
               <form onSubmit={handleEditProduct} className="space-y-8">
-                <div><label className="text-xs tracking-widest text-white/50 block mb-1">PRODUCT CODE</label><div className="text-lg font-mono text-white/70">{formData.prodcode}</div></div>
+                <div>
+                  <label className="text-xs tracking-widest text-white/50 block mb-1">PRODUCT CODE</label>
+                  <div className="text-lg font-mono text-white/70">{formData.prodcode}</div>
+                </div>
                 <div>
                   <label className="text-xs tracking-widest text-white/50 block mb-2">DESCRIPTION (MAX 30)</label>
-                  <textarea placeholder="SHORT PRODUCT NAME OR LABEL" required maxLength={30} value={formData.description} onChange={e=>setFormData({...formData, description:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 h-24 outline-none focus:border-[#d4af37]" />
+                  <textarea 
+                    placeholder="SHORT PRODUCT NAME OR LABEL" 
+                    required 
+                    maxLength={30} 
+                    value={formData.description} 
+                    onChange={e=>setFormData({...formData, description:e.target.value})} 
+                    className="w-full bg-transparent border-b border-white/20 pb-3 h-24 outline-none focus:border-[#d4af37]" 
+                  />
                 </div>
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div>
                     <label className="text-xs tracking-widest text-white/50 block mb-2">UNIT</label>
-                    <select value={formData.unit} onChange={e=>setFormData({...formData, unit:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]">
-                      <option value="ea">EA</option><option value="pc">PC</option><option value="mtr">MTR</option><option value="pkg">PKG</option><option value="ltr">LTR</option>
+                    <select 
+                      value={formData.unit} 
+                      onChange={e=>setFormData({...formData, unit:e.target.value})} 
+                      className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]"
+                    >
+                      <option value="ea">EA</option>
+                      <option value="pc">PC</option>
+                      <option value="mtr">MTR</option>
+                      <option value="pkg">PKG</option>
+                      <option value="ltr">LTR</option>
                     </select>
                   </div>
                   <div>
                     <label className="text-xs tracking-widest text-white/50 block mb-2">STOCK</label>
-                    <input type="number" value={formData.stock} onChange={e=>setFormData({...formData, stock:parseInt(e.target.value)||0})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]" />
+                    <input 
+                      type="number" 
+                      value={formData.stock} 
+                      onChange={e=>setFormData({...formData, stock:parseInt(e.target.value)||0})} 
+                      className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]" 
+                    />
                   </div>
                 </div>
                 <div>
                   <label className="text-xs tracking-widest text-white/50 block mb-2">PRICE (₱)</label>
-                  <input type="number" step="0.01" value={formData.price} onChange={e=>setFormData({...formData, price:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]" />
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={formData.price} 
+                    onChange={e=>setFormData({...formData, price:e.target.value})} 
+                    className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]" 
+                  />
                 </div>
+
+                {/* ========== FIXED IMAGE SECTION (EDIT) ========== */}
                 <div>
-                  <label className="text-xs tracking-widest text-white/50 block mb-2">IMAGE URL</label>
-                  <input type="url" value={formData.image_url} onChange={e=>setFormData({...formData, image_url:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]" />
+                  <label className="text-xs tracking-widest text-white/50 block mb-2">PRODUCT IMAGE</label>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-shrink-0">
+                      <img 
+                        id="editImagePreview" 
+                        src={formData.image_url || 'https://via.placeholder.com/80x80/111/ddd?text=No+Image'} 
+                        className="w-16 h-16 object-cover border border-white/20 rounded" 
+                        alt="Preview" 
+                      />
+                    </div>
+                    <div>
+                      <button 
+                        type="button"
+                        onClick={() => document.getElementById('editImageUpload').click()}
+                        className="px-5 py-2 text-xs border border-white/30 hover:border-[#d4af37] hover:text-[#d4af37] transition"
+                      >
+                        UPLOAD NEW IMAGE
+                      </button>
+                      <input 
+                        type="file" 
+                        id="editImageUpload" 
+                        accept="image/*" 
+                        className="hidden"
+                        onChange={(e) => handleImageUpload(e, 'edit')}
+                      />
+                      <p className="text-[10px] text-white/40 mt-1">JPG or PNG • Max 2MB</p>
+                    </div>
+                  </div>
                 </div>
+                {/* ========== END FIXED IMAGE SECTION ========== */}
+
                 <div className="flex gap-4 pt-4">
-                  <button type="button" onClick={()=>{setShowEditModal(false);setSelectedProduct(null);}} className="flex-1 py-4 border border-white/30 hover:bg-white/5 transition">CANCEL</button>
-                  <button type="submit" className="flex-1 py-4 bg-[#d4af37] text-black font-medium tracking-widest hover:bg-white transition">SAVE CHANGES</button>
+                  <button 
+                    type="button" 
+                    onClick={()=>{setShowEditModal(false);setSelectedProduct(null);}} 
+                    className="flex-1 py-4 border border-white/30 hover:bg-white/5 transition"
+                  >
+                    CANCEL
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="flex-1 py-4 bg-[#d4af37] text-black font-medium tracking-widest hover:bg-white transition"
+                  >
+                    SAVE CHANGES
+                  </button>
                 </div>
               </form>
             </div>
           </div>
         )}
 
-        {/* Delete Dialog */}
+        {/* ==================== DELETE DIALOG - FIXED POSITION (UPPER PAGE) ==================== */}
         {showDeleteDialog && selectedProduct && hasRight('PRD_DEL') && (
-          <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[100] p-6">
-            <div className="bg-[#0a0a0c] border border-white/10 w-full max-w-sm p-10 text-center">
+          <div 
+            className="fixed inset-0 bg-black/95 flex items-start justify-center z-[100] pt-24 p-6" 
+            onClick={() => {setShowDeleteDialog(false);setSelectedProduct(null);}}
+          >
+            <div 
+              className="bg-[#0a0a0c] border border-white/10 w-full max-w-sm p-10 text-center shadow-2xl" 
+              onClick={e => e.stopPropagation()}
+            >
               <div className="text-6xl mb-6 text-red-400">⚠</div>
               <h3 className="text-2xl mb-4">Delete Asset?</h3>
-              <p className="text-white/70 mb-8">This will soft-delete <span className="text-white font-medium">{selectedProduct.name || selectedProduct.prodcode}</span>. It can be recovered from Deleted Items.</p>
+              <p className="text-white/70 mb-8">
+                This will soft-delete <span className="text-white font-medium">{selectedProduct.prodcode}</span>. It can be recovered from Deleted Items.
+              </p>
               <div className="flex gap-4">
-                <button onClick={()=>{setShowDeleteDialog(false);setSelectedProduct(null);}} className="flex-1 py-4 border border-white/30 hover:bg-white/5 transition">CANCEL</button>
-                <button onClick={handleSoftDelete} className="flex-1 py-4 bg-red-600 text-white font-medium tracking-widest hover:bg-red-700 transition">YES, DELETE</button>
+                <button 
+                  onClick={()=>{setShowDeleteDialog(false);setSelectedProduct(null);}} 
+                  className="flex-1 py-4 border border-white/30 hover:bg-white/5 transition"
+                >
+                  CANCEL
+                </button>
+                <button 
+                  onClick={handleSoftDelete} 
+                  className="flex-1 py-4 bg-red-600 text-white font-medium tracking-widest hover:bg-red-700 transition"
+                >
+                  YES, DELETE
+                </button>
               </div>
             </div>
           </div>

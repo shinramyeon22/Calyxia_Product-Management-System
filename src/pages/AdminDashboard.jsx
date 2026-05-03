@@ -34,9 +34,13 @@ export default function AdminDashboard() {
     }
   }
 
-  async function toggleStatus(userId, currentStatus) {
+  async function toggleStatus(userId, currentStatus, userType) {
     if (userId === currentAdmin?.id) {
       alert("You cannot deactivate yourself!");
+      return;
+    }
+    if (userType === 'SUPERADMIN') {
+      alert("SUPERADMIN accounts cannot be modified. This action is blocked for security.");
       return;
     }
 
@@ -107,11 +111,12 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-8 py-8 text-right">
                       <button 
-                        onClick={() => toggleStatus(u.id, u.record_status)}
-                        disabled={u.id === currentAdmin?.id}
-                        className={`text-sm ${u.id === currentAdmin?.id ? 'text-white/30' : 'hover:text-[#d4af37]'}`}
+                        onClick={() => toggleStatus(u.id, u.record_status, u.user_type)}
+                        disabled={u.id === currentAdmin?.id || u.user_type === 'SUPERADMIN'}
+                        className={`text-sm ${u.id === currentAdmin?.id || u.user_type === 'SUPERADMIN' ? 'text-white/30' : 'hover:text-[#d4af37]'}`}
+                        title={u.user_type === 'SUPERADMIN' ? 'SUPERADMIN accounts cannot be modified' : ''}
                       >
-                        {u.id === currentAdmin?.id ? 'CURRENT ADMIN' : (u.record_status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE')}
+                        {u.id === currentAdmin?.id ? 'CURRENT ADMIN' : u.user_type === 'SUPERADMIN' ? 'PROTECTED' : (u.record_status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE')}
                       </button>
                     </td>
                   </tr>

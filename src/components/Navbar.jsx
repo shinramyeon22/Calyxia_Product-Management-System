@@ -1,98 +1,150 @@
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useState } from 'react';
+import { useRights } from '../context/UserRightsContext';
 
 export default function Navbar() {
-  const { user, loading, signOut } = useAuth();
+  const { user, signOut } = useAuth();
+  const { hasRight } = useRights();
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      navigate('/login');
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
   };
 
   const userInitial = user?.email?.[0]?.toUpperCase() || 'U';
+  const username = user?.email?.split('@')[0] || 'User';
 
-  if (loading) {
-    return <nav className="fixed top-0 left-0 right-0 z-50 h-20 bg-black/90 backdrop-blur-md border-b border-white/10" />;
-  }
+  // Use hasRight as primary check + fallback to user_type
+  const isAdmin = hasRight('admin') || 
+                  hasRight('superadmin') || 
+                  ['ADMIN', 'SUPERADMIN'].includes(
+                    (user?.user_type || user?.raw_user_meta_data?.user_type || 'USER').toUpperCase()
+                  );
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-lg border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-8 py-7 flex justify-between items-center">
-        <Link to="/products" className="serif-font text-4xl italic tracking-tighter hover:text-[#d4af37] transition-colors">
-          Calyxia
-        </Link>
-
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-10 text-sm tracking-[0.125em] uppercase">
-          <Link to="/products" className="hover:text-[#d4af37] transition-colors">Collection</Link>
-
-          {(user?.user_type === 'ADMIN' || user?.user_type === 'SUPERADMIN') && (
-            <div className="flex items-center gap-8 border-l border-white/10 pl-8">
-              <Link to="/admin" className="hover:text-[#d4af37] transition-colors">Users</Link>
-              <Link to="/admin/products" className="text-[#d4af37] font-medium border-b border-[#d4af37] pb-0.5">Inventory</Link>
-            </div>
-          )}
+    <nav className="fixed top-0 left-0 right-0 bg-black border-b border-white/10 z-[200]">
+      <div className="max-w-7xl mx-auto px-8 h-20 flex items-center justify-between">
+        {/* Left: Logo */}
+        <div className="flex items-center">
+          <Link to="/dashboard" className="serif-font text-3xl italic text-[#d4af37] tracking-tighter">
+            Calyxia
+          </Link>
         </div>
 
-        {/* User + Actions */}
+        {/* Right: User + COLLECTION + MENU + SIGN OUT */}
         <div className="flex items-center gap-4">
-          {user && (
-            <div className="hidden md:flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#d4af37] text-black flex items-center justify-center text-sm font-medium">
-                {userInitial}
-              </div>
-              <span className="text-xs text-white/50 tracking-widest">{user.email?.split('@')[0]}</span>
+          {/* User Avatar + Name */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#d4af37] flex items-center justify-center text-black text-sm font-medium">
+              {userInitial}
             </div>
-          )}
+            <span className="text-sm text-white/80 hidden md:block">{username}</span>
+          </div>
 
-          <button 
-            onClick={handleLogout}
-            className="px-6 py-3 text-xs tracking-widest border border-white/30 hover:border-[#d4af37] hover:text-[#d4af37] transition-all hidden md:block"
+          {/* COLLECTION Button */}
+          <Link
+            to="/products"
+            className="px-6 py-2 text-xs tracking-[0.15em] text-white/70 hover:text-[#d4af37] transition border border-white/20 hover:border-[#d4af37] rounded"
+          >
+            COLLECTION
+          </Link>
+
+          {/* MENU Button with Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="flex items-center gap-2 px-4 py-2 text-xs tracking-[0.15em] text-white/70 hover:text-white border border-white/20 hover:border-white/40 rounded transition"
+            >
+              MENU
+              <div className="space-y-1">
+                <div className="w-4 h-[1px] bg-current"></div>
+                <div className="w-4 h-[1px] bg-current"></div>
+                <div className="w-4 h-[1px] bg-current"></div>
+              </div>
+            </button>
+
+            {/* Dropdown Menu */}
+            {showMenu && (
+              <div className="absolute right-0 mt-2 w-56 bg-[#0a0a0c] border border-white/10 rounded shadow-2xl py-2 z-[300]">
+                <Link
+                  to="/dashboard"
+                  className="block px-6 py-3 text-sm text-white/80 hover:bg-white/5 hover:text-[#d4af37] transition"
+                  onClick={() => setShowMenu(false)}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/products"
+                  className="block px-6 py-3 text-sm text-white/80 hover:bg-white/5 hover:text-[#d4af37] transition"
+                  onClick={() => setShowMenu(false)}
+                >
+                  Browse Collection
+                </Link>
+                <Link
+                  to="/reports"
+                  className="block px-6 py-3 text-sm text-white/80 hover:bg-white/5 hover:text-[#d4af37] transition"
+                  onClick={() => setShowMenu(false)}
+                >
+                  Reports
+                </Link>
+
+                {isAdmin && (
+                  <>
+                    <div className="border-t border-white/10 my-1"></div>
+                    <Link
+                      to="/admin"
+                      className="block px-6 py-3 text-sm text-white/80 hover:bg-white/5 hover:text-[#d4af37] transition"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      User Management
+                    </Link>
+                    <Link
+                      to="/admin/products"
+                      className="block px-6 py-3 text-sm text-white/80 hover:bg-white/5 hover:text-[#d4af37] transition"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      Inventory Management
+                    </Link>
+                    <Link
+                      to="/deleted-items"
+                      className="block px-6 py-3 text-sm text-white/80 hover:bg-white/5 hover:text-[#d4af37] transition"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      Deleted Items
+                    </Link>
+                    <Link
+                      to="/admin/rights"
+                      className="block px-6 py-3 text-sm text-white/80 hover:bg-white/5 hover:text-[#d4af37] transition"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      Access Rules
+                    </Link>
+                  </>
+                )}
+
+                <div className="border-t border-white/10 my-1"></div>
+                <button
+                  onClick={handleSignOut}
+                  className="w-full text-left px-6 py-3 text-sm text-red-400 hover:bg-red-950/50 transition"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* SIGN OUT Button */}
+          <button
+            onClick={handleSignOut}
+            className="px-6 py-2 text-xs tracking-[0.15em] border border-white/30 text-white/70 hover:text-white hover:border-white transition rounded"
           >
             SIGN OUT
           </button>
-
-          {/* Mobile Hamburger */}
-          <button 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden w-10 h-10 flex items-center justify-center text-[#d4af37] text-xl"
-          >
-            {mobileMenuOpen ? '✕' : '☰'}
-          </button>
         </div>
       </div>
-
-      {/* Mobile Menu Drawer */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-black/95 border-t border-white/10 px-8 py-8 text-sm tracking-widest">
-          <div className="flex flex-col gap-6">
-            <Link to="/products" className="hover:text-[#d4af37]" onClick={() => setMobileMenuOpen(false)}>Collection</Link>
-            
-            {(user?.user_type === 'ADMIN' || user?.user_type === 'SUPERADMIN') && (
-              <>
-                <Link to="/admin" className="hover:text-[#d4af37]" onClick={() => setMobileMenuOpen(false)}>User Registry</Link>
-                <Link to="/admin/products" className="hover:text-[#d4af37]" onClick={() => setMobileMenuOpen(false)}>Inventory Vault</Link>
-              </>
-            )}
-            
-            <div className="pt-6 border-t border-white/10">
-              <button 
-                onClick={handleLogout}
-                className="w-full py-4 border border-white/30 text-xs tracking-widest hover:border-[#d4af37] hover:text-[#d4af37] transition"
-              >
-                SIGN OUT
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </nav>
   );
 }

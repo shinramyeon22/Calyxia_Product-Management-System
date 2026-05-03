@@ -8,7 +8,7 @@ import { acquireProduct, getProductStock, getPriceHistory, getCurrentPrice } fro
 
 export default function ProductDetails() {
   const { id } = useParams();
-  const { user } = useAuth(); 
+  const { user: _user } = useAuth();
   const [product, setProduct] = useState(null);
   const [stock, setStock] = useState(0);
   const [priceHistory, setPriceHistory] = useState([]);
