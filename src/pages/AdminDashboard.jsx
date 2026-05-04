@@ -116,7 +116,7 @@ export default function AdminDashboard() {
                         className={`text-sm ${u.id === currentAdmin?.id || u.user_type === 'SUPERADMIN' ? 'text-white/30' : 'hover:text-[#d4af37]'}`}
                         title={u.user_type === 'SUPERADMIN' ? 'SUPERADMIN accounts cannot be modified' : ''}
                       >
-                        {u.id === currentAdmin?.id ? 'CURRENT ADMIN' : u.user_type === 'SUPERADMIN' ? 'PROTECTED' : (u.record_status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE')}
+                        {u.id === currentAdmin?.id ? 'CURRENT ADMIN' : u.user_type === 'SUPERADMIN' ? 'SUPERADMIN accounts cannot be modified' : (u.record_status === 'ACTIVE' ? 'DEACTIVATE' : 'ACTIVATE')}
                       </button>
                     </td>
                   </tr>
