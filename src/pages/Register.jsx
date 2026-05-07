@@ -1,103 +1,143 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { useNavigate, Link } from 'react-router-dom';
+import { supabase } from '../services/supabaseClient';
 
 const Register = () => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  // FIX: Added the missing state for success messages
-  const [successMsg, setSuccessMsg] = useState('');
- 
-  // FIX: This function MUST be defined inside the component
-  const handleGoogleSignIn = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + '/auth/callback',
-        },
-      });
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error logging in with Google:', error.message);
-      alert(error.message);
-    }
-  };
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
-  const handleEmailRegister = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
-    });
+    setError('');
 
-    if (error) {
-      alert(error.message);
-    } else {
-      setSuccessMsg('Registration successful! Access is pending Admin activation.');
+    if (!firstName || !lastName || !username || !email || !password) {
+      setError('All fields are required');
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    try {
+      const fullName = `${firstName} ${lastName}`;
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { 
+            full_name: fullName,
+            username: username 
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (signUpError) throw signUpError;
+
+      // Create app_user record immediately (optional, callback also does it)
+      const { error: profileError } = await supabase
+        .from('app_user')
+        .insert([{
+          id: (await supabase.auth.getUser()).data.user?.id,
+          email,
+          full_name: fullName,
+          username,
+          record_status: 'ACTIVE',
+          user_type: 'USER'
+        }]);
+
+      if (profileError && !profileError.message.includes('duplicate')) {
+        console.warn('Profile insert note:', profileError.message);
+      }
+
+      alert('Verification link sent! Please check your email to activate your account.');
+      navigate('/login');
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="auth-container" style={{ padding: '20px', maxWidth: '400px', margin: '0 auto' }}>
-      <h2>Create Account</h2>
-      
-      {successMsg ? (
-        <div className="success-banner" style={{ color: 'green', marginBottom: '15px' }}>
-          {successMsg}
-        </div>
-      ) : (
-        <>
-          <form onSubmit={handleEmailRegister} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <input 
-              type="email" 
-              placeholder="Email" 
-              value={email}
-              onChange={e => setEmail(e.target.value)} 
-              required 
-            />
-            <input 
-              type="password" 
-              placeholder="Password" 
-              value={password}
-              onChange={e => setPassword(e.target.value)} 
-              required 
-            />
-            <button type="submit" disabled={loading}>
-              {loading ? 'Processing...' : 'Register'}
-            </button>
-          </form>
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-8">
+      <div className="w-full max-w-md border border-white/10 bg-black/50 backdrop-blur-xl p-12">
+        <h2 className="serif-font text-5xl italic text-center mb-12">Establish Identity</h2>
 
-          <div style={{ margin: '20px 0', textAlign: 'center', color: '#666' }}>OR</div>
+        {error && (
+          <div className="mb-6 p-4 bg-red-950/50 border border-red-500/50 text-red-400 text-sm tracking-widest">
+            {error}
+          </div>
+        )}
 
-          {/* FIX: onClick name now matches handleGoogleSignIn exactly */}
-          <button 
-            onClick={handleGoogleSignIn}
-            className="google-auth-button"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
-              padding: '10px',
-              width: '100%',
-              cursor: 'pointer',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              backgroundColor: 'white'
-            }}
+        <form onSubmit={handleRegister} className="space-y-8">
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="text"
+              placeholder="FIRST NAME"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="w-full bg-transparent border-b border-white/20 pb-4 text-sm tracking-widest focus:border-[#d4af37] outline-none"
+              required
+            />
+            <input
+              type="text"
+              placeholder="LAST NAME"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="w-full bg-transparent border-b border-white/20 pb-4 text-sm tracking-widest focus:border-[#d4af37] outline-none"
+              required
+            />
+          </div>
+
+          <input
+            type="text"
+            placeholder="USERNAME"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-full bg-transparent border-b border-white/20 pb-4 text-sm tracking-widest focus:border-[#d4af37] outline-none"
+            required
+          />
+
+          <input
+            type="email"
+            placeholder="EMAIL ADDRESS"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full bg-transparent border-b border-white/20 pb-4 text-sm tracking-widest focus:border-[#d4af37] outline-none"
+            required
+          />
+
+          <input
+            type="password"
+            placeholder="PASSWORD"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full bg-transparent border-b border-white/20 pb-4 text-sm tracking-widest focus:border-[#d4af37] outline-none"
+            required
+          />
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-5 bg-[#d4af37] text-black text-xs tracking-[0.125em] font-medium hover:bg-white transition disabled:opacity-70"
           >
-            <img src="https://authjs.dev/img/providers/google.svg" width="20" alt="Google" />
-            Continue with Google
+            {loading ? 'ESTABLISHING...' : 'CREATE ACCOUNT'}
           </button>
-        </>
-      )}
+        </form>
+
+        <p className="text-center text-xs text-white/50 mt-10">
+          Already have access?{' '}
+          <Link to="/login" className="text-[#d4af37] hover:underline">Sign In</Link>
+        </p>
+      </div>
     </div>
   );
-}
 };
 
 export default Register;

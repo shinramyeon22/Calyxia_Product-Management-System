@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient'; 
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { supabase } from '../services/supabaseClient';
 
 const AuthContext = createContext({});
 
@@ -9,73 +9,76 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const checkUserStatus = async (currentSession) => {
+  const fetchProfile = useCallback(async (session) => {
+    if (!session?.user?.id) return;
+
     try {
-      const { data: profile, error } = await supabase
-        .from('user') 
-        .select('record_status, user_type')
-        .eq('userId', currentSession.user.id) // Ensure this matches your column name (userId or id)
+      const { data, error } = await supabase
+        .from('app_user')
+        .select('user_type, record_status')
+        .eq('id', session.user.id)
         .single();
 
-      // CASE 1: User exists but is INACTIVE
-      if (profile?.record_status === 'INACTIVE') {
-        await supabase.auth.signOut();
-        setSession(null);
-        setUser(null);
-        // Better to redirect with a URL param than a blocking alert
-        window.location.href = '/login?error=not_activated';
-        return;
-      }
-
-      // CASE 2: User record doesn't exist yet (New Google Signup)
-      if (error && error.code === 'PGRST116') { 
-        // This is the "No rows found" error. 
-        // We let them stay logged into Auth, but don't give them a 'user' profile yet.
-        setSession(currentSession);
-        setUser(currentSession.user); 
+      if (error) {
+        console.warn("No profile found, using default USER:", error.message);
+        setUser({ 
+          ...session.user, 
+          user_type: 'USER',
+          record_status: 'ACTIVE'
+        });
       } else {
-        // CASE 3: Active user found
-        setSession(currentSession);
-        setUser({ ...currentSession.user, ...profile });
+        setUser({ ...session.user, ...data });
       }
     } catch (err) {
-      console.error("Auth check failed", err);
-    } finally {
-      setLoading(false);
+      console.error("Profile fetch error:", err);
+      setUser({ ...session.user, user_type: 'USER' });
     }
-  };
-
-  useEffect(() => {
-    const initializeAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await checkUserStatus(session);
-      } else {
-        setLoading(false);
-      }
-    };
-    initializeAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        await checkUserStatus(session);
-      } else {
-        setSession(null);
-        setUser(null);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
-  const value = { session, user, signOut: () => supabase.auth.signOut() };
+  useEffect(() => {
+  // 1. Instant check: Use cached session/type while waiting for Supabase
+  const cachedType = localStorage.getItem('user_type');
+  
+  supabase.auth.getSession().then(({ data: { session: initSession } }) => {
+    if (initSession) {
+      setSession(initSession);
+      // Optimistically set the user type from cache to bypass "Loading" screens
+      setUser({ ...initSession.user, user_type: cachedType || 'USER' });
+      fetchProfile(initSession);
+    }
+    setLoading(false);
+  });
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, currSession) => {
+    setSession(currSession);
+    if (currSession) {
+      await fetchProfile(currSession);
+    } else {
+      setUser(null);
+      localStorage.removeItem('user_type'); // Clean up on logout
+    }
+    setLoading(false);
+  });
+
+  return () => subscription.unsubscribe();
+}, [fetchProfile]);
+
+  const signOut = async () => {
+  const { error } = await supabase.auth.signOut();
+  if (error) console.error("Error signing out:", error.message);
+  
+  // Manually reset state so the UI reacts immediately
+  setUser(null);
+  setSession(null);
+  localStorage.removeItem('user_type'); 
+};
 
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
+    <AuthContext.Provider value={{ session, user, loading, signOut }}>
+      {children}
     </AuthContext.Provider>
   );
 };
+
 
 export const useAuth = () => useContext(AuthContext);
