@@ -36,30 +36,42 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: initSession } }) => {
-      if (initSession) {
-        setSession(initSession);
-        setUser(initSession.user);
-        fetchProfile(initSession);
-      }
-      setLoading(false);
-    });
+  // 1. Instant check: Use cached session/type while waiting for Supabase
+  const cachedType = localStorage.getItem('user_type');
+  
+  supabase.auth.getSession().then(({ data: { session: initSession } }) => {
+    if (initSession) {
+      setSession(initSession);
+      // Optimistically set the user type from cache to bypass "Loading" screens
+      setUser({ ...initSession.user, user_type: cachedType || 'USER' });
+      fetchProfile(initSession);
+    }
+    setLoading(false);
+  });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currSession) => {
-      setSession(currSession);
-      setUser(currSession?.user ?? null);
-      if (currSession) fetchProfile(currSession);
-      setLoading(false);
-    });
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, currSession) => {
+    setSession(currSession);
+    if (currSession) {
+      await fetchProfile(currSession);
+    } else {
+      setUser(null);
+      localStorage.removeItem('user_type'); // Clean up on logout
+    }
+    setLoading(false);
+  });
 
-    return () => subscription.unsubscribe();
-  }, [fetchProfile]);
+  return () => subscription.unsubscribe();
+}, [fetchProfile]);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-  };
+  const { error } = await supabase.auth.signOut();
+  if (error) console.error("Error signing out:", error.message);
+  
+  // Manually reset state so the UI reacts immediately
+  setUser(null);
+  setSession(null);
+  localStorage.removeItem('user_type'); 
+};
 
   return (
     <AuthContext.Provider value={{ session, user, loading, signOut }}>
@@ -67,5 +79,6 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
 
 export const useAuth = () => useContext(AuthContext);

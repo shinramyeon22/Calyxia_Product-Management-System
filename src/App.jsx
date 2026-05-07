@@ -10,7 +10,6 @@ import ProductDetails from './pages/ProductDetails';
 import DeletedItemsPage from './pages/DeletedItemsPage';
 import Dashboard from './pages/Dashboard';
 import Reports from './pages/Reports';
-import AccessRules from './pages/AccessRules';
 import { ToastProvider } from './context/ToastProvider';
 import PageTransition from './components/PageTransition';
 
@@ -22,9 +21,19 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   }
 
   if (!session) return <Navigate to="/login" replace />;
-  if (requireAdmin && !['ADMIN', 'SUPERADMIN'].includes((user?.user_type || user?.raw_user_meta_data?.user_type || '').toUpperCase())) {
+  // App.jsx - Update the requireAdmin logic
+if (requireAdmin) {
+  const type = (user?.user_type || user?.raw_user_meta_data?.user_type || '').toUpperCase();
+  // If we have a session but the user_type hasn't loaded yet, 
+  // show the loading state instead of redirecting
+  if (!type && session) {
+    return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-[#d4af37]">VERIFYING PERMISSIONS...</div>;
+  }
+
+  if (!['ADMIN', 'SUPERADMIN'].includes(type)) {
     return <Navigate to="/products" replace />;
   }
+}
 
   return children;
 };
@@ -42,12 +51,11 @@ function App() {
           <Route path="/product/:id" element={<ProtectedRoute><ProductDetails /></ProtectedRoute>} />
 
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute requireAdmin={true}><Reports /></ProtectedRoute>} />
 
           <Route path="/admin" element={<ProtectedRoute requireAdmin={true}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/products" element={<ProtectedRoute requireAdmin={true}><ProductManagement /></ProtectedRoute>} />
           <Route path="/deleted-items" element={<ProtectedRoute requireAdmin={true}><DeletedItemsPage /></ProtectedRoute>} />
-          <Route path="/admin/rights" element={<ProtectedRoute requireAdmin={true}><AccessRules /></ProtectedRoute>} />
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />

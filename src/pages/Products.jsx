@@ -42,8 +42,8 @@ export default function Products() {
       <Navbar />
 
       <header className="pt-32 pb-20 text-center border-b border-white/10">
-        <span className="text-[#d4af37] text-xs tracking-[0.5em] uppercase">The Private Collection</span>
-        <h1 className="serif-font text-7xl md:text-8xl italic mt-6 tracking-tighter">Calyxia Collections</h1>
+        <span className="text-[#d4af37] text-xs tracking-[0.5em] uppercase">The Private Product</span>
+        <h1 className="serif-font text-7xl md:text-8xl italic mt-6 tracking-tighter">Calyxia Product</h1>
         <p className="mt-6 text-white/60 max-w-md mx-auto">Curated institutional assets. Each piece tells a story of craftsmanship and rarity.</p>
       </header>
 
@@ -52,7 +52,7 @@ export default function Products() {
         <div className="mb-12 flex justify-end">
           <input 
             type="text" 
-            placeholder="SEARCH ASSETS..." 
+            placeholder="SEARCH PRODUCTS..." 
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full max-w-xs bg-transparent border border-white/20 px-6 py-4 text-sm tracking-widest focus:border-[#d4af37] outline-none placeholder:text-white/40"
@@ -61,7 +61,7 @@ export default function Products() {
 
         {loading ? (
           <div className="flex justify-center py-32">
-            <div className="text-[#d4af37] text-xs tracking-[0.5em]">CURATING ASSETS...</div>
+            <div className="text-[#d4af37] text-xs tracking-[0.5em]">CURATING PRODUCTS...</div>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-20 text-white/50">No assets match your search.</div>

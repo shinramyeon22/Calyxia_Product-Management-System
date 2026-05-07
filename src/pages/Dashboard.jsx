@@ -53,10 +53,10 @@ export default function Dashboard() {
           {/* Summary Cards */}
           <div className="grid md:grid-cols-3 gap-8 mb-16">
             <div className="border border-white/10 bg-black/50 p-10 group hover:border-[#d4af37]/50 transition">
-              <div className="text-xs tracking-[0.5em] text-white/50 mb-4">INVENTORY</div>
+              <div className="text-xs tracking-[0.5em] text-white/50 mb-4">PRODUCT LISTING</div>
               <div className="text-7xl font-mono text-[#d4af37] mb-2">{loading ? '—' : stats.totalProducts}</div>
               <div className="text-sm text-white/70">Active Assets in Vault</div>
-              <Link to="/products" className="mt-8 inline-block text-xs tracking-widest border-b border-white/30 hover:border-[#d4af37] pb-1">VIEW COLLECTION →</Link>
+              <Link to="/products" className="mt-8 inline-block text-xs tracking-widest border-b border-white/30 hover:border-[#d4af37] pb-1">VIEW PRODUCTS →</Link>
             </div>
 
             <div className="border border-white/10 bg-black/50 p-10 group hover:border-[#d4af37]/50 transition">
@@ -82,10 +82,10 @@ export default function Dashboard() {
           <div>
             <div className="text-xs tracking-[0.5em] text-white/50 mb-6">QUICK ACTIONS</div>
             <div className="flex flex-wrap gap-4">
-              <Link to="/products" className="px-8 py-4 border border-white/20 hover:border-[#d4af37] hover:text-[#d4af37] text-sm tracking-widest transition">BROWSE COLLECTION</Link>
+              <Link to="/products" className="px-8 py-4 border border-white/20 hover:border-[#d4af37] hover:text-[#d4af37] text-sm tracking-widest transition">BROWSE PRODUCTS</Link>
               {isAdmin && (
                 <>
-                  <Link to="/admin/products" className="px-8 py-4 border border-white/20 hover:border-[#d4af37] hover:text-[#d4af37] text-sm tracking-widest transition">MANAGE INVENTORY</Link>
+                  <Link to="/admin/products" className="px-8 py-4 border border-white/20 hover:border-[#d4af37] hover:text-[#d4af37] text-sm tracking-widest transition">MANAGE PRODUCTS</Link>
                   <Link to="/reports" className="px-8 py-4 border border-white/20 hover:border-[#d4af37] hover:text-[#d4af37] text-sm tracking-widest transition">VIEW REPORTS</Link>
                 </>
               )}

@@ -34,7 +34,7 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Right: User + COLLECTION + MENU + SIGN OUT */}
+        {/* Right: User + PRODUCTS + MENU + SIGN OUT */}
         <div className="flex items-center gap-4">
           {/* User Avatar + Name */}
           <div className="flex items-center gap-3">
@@ -44,12 +44,12 @@ export default function Navbar() {
             <span className="text-sm text-white/80 hidden md:block">{username}</span>
           </div>
 
-          {/* COLLECTION Button */}
+          {/* PRODUCTS Button */}
           <Link
             to="/products"
             className="px-6 py-2 text-xs tracking-[0.15em] text-white/70 hover:text-[#d4af37] transition border border-white/20 hover:border-[#d4af37] rounded"
           >
-            COLLECTION
+            PRODUCTS
           </Link>
 
           {/* MENU Button with Dropdown */}
@@ -81,7 +81,7 @@ export default function Navbar() {
                   className="block px-6 py-3 text-sm text-white/80 hover:bg-white/5 hover:text-[#d4af37] transition"
                   onClick={() => setShowMenu(false)}
                 >
-                  Browse Collection
+                  Browse Products
                 </Link>
                 <Link
                   to="/reports"
@@ -106,7 +106,7 @@ export default function Navbar() {
                       className="block px-6 py-3 text-sm text-white/80 hover:bg-white/5 hover:text-[#d4af37] transition"
                       onClick={() => setShowMenu(false)}
                     >
-                      Inventory Management
+                      Product Management
                     </Link>
                     <Link
                       to="/deleted-items"
@@ -114,13 +114,6 @@ export default function Navbar() {
                       onClick={() => setShowMenu(false)}
                     >
                       Deleted Items
-                    </Link>
-                    <Link
-                      to="/admin/rights"
-                      className="block px-6 py-3 text-sm text-white/80 hover:bg-white/5 hover:text-[#d4af37] transition"
-                      onClick={() => setShowMenu(false)}
-                    >
-                      Access Rules
                     </Link>
                   </>
                 )}
@@ -135,7 +128,6 @@ export default function Navbar() {
               </div>
             )}
           </div>
-
         </div>
       </div>
     </nav>

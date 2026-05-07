@@ -51,7 +51,7 @@ export default function ProductManagement() {
       }
       setCurrentPrices(prices);
     } catch (err) {
-      setError(err.message || 'Failed to load inventory');
+      setError(err.message || 'Failed to load Product Inventory');
     } finally {
       setLoading(false);
     }
@@ -232,7 +232,7 @@ export default function ProductManagement() {
               </div>
               <div>
                 <span className="block text-[#d4af37] text-xs tracking-[0.5em]">INSTITUTIONAL CONTROL</span>
-                <h1 className="serif-font text-6xl italic tracking-tighter">Inventory Vault</h1>
+                <h1 className="serif-font text-6xl italic tracking-tighter">Product Vault</h1>
               </div>
             </div>
 

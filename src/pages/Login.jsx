@@ -59,7 +59,7 @@ export default function Login() {
         
         <div className="relative z-10 text-center px-12">
           <h2 className="serif-font text-[180px] leading-none text-white/10 select-none">CX</h2>
-          <p className="text-[#d4af37] text-xs tracking-[0.5em] mt-6">THE PRIVATE COLLECTION</p>
+          <p className="text-[#d4af37] text-xs tracking-[0.5em] mt-6">THE PRIVATE PRODUCT</p>
         </div>
       </div>
 

@@ -41,15 +41,9 @@ export default function Sidebar() {
                 </Link>
               )}
 
-              {/* ACCESS RULES - Only SUPERADMIN */}
-              {userType === 'SUPERADMIN' && (
-                <Link to="/admin/rights" className={getLinkStyle('/admin/rights')}>
-                  ACCESS RULES
-                </Link>
-              )}
 
               <Link to="/admin/products" className={getLinkStyle('/admin/products')}>
-                INVENTORY
+                PRODUCT LISTING
               </Link>
 
               {hasRight('PRD_RESTORE') && (
@@ -62,35 +56,42 @@ export default function Sidebar() {
         )}
 
         {/* REPORTS SECTION */}
-        {/* Only show the section if the user has at least one report right */}
-        {(hasRight('REP_001') || hasRight('REP_002')) && (
-          <div className="mt-8">
-            <div className="text-xs tracking-[0.5em] text-white/50 mb-4 uppercase">Reports</div>
-            <nav className="space-y-1">
-              
-              {/* PR-01: REP_001 link gated */}
-              {hasRight('REP_001') && (
-                <Link to="/reports/sales" className={getLinkStyle('/reports/sales')}>
-                  SALES REPORT
-                </Link>
-              )}
+{(hasRight('REP_001') || hasRight('REP_002')) && (
+  <div className="mt-8">
+    <div className="text-xs tracking-[0.5em] text-white/50 mb-4 uppercase">Reports</div>
+    <nav className="space-y-1">
+      
+      {/* Link to Reports and tell it to open the Top Selling/Sales tab */}
+      {hasRight('REP_001') && (
+        <Link 
+          to="/reports" 
+          state={{ tab: 'topselling' }} 
+          className={getLinkStyle('/reports')}
+        >
+          SALES REPORT
+        </Link>
+      )}
 
-              {/* PR-01: REP_002 link gated */}
-              {hasRight('REP_002') && (
-                <Link to="/reports/inventory" className={getLinkStyle('/reports/inventory')}>
-                  INVENTORY REPORT
-                </Link>
-              )}
+      {/* Link to Reports and tell it to open the Products tab */}
+      {hasRight('REP_002') && (
+        <Link 
+          to="/reports" 
+          state={{ tab: 'products' }} 
+          className={getLinkStyle('/reports')}
+        >
+          PRODUCT LISTING REPORT
+        </Link>
+      )}
 
-            </nav>
-          </div>
-        )}
+    </nav>
+  </div>
+)}
 
         {/* PUBLIC LINKS */}
         <div className={`mt-12 pt-8 ${isAdminOrSuper ? 'border-t border-white/10' : ''}`}>
           <div className="text-xs text-white/40 uppercase tracking-widest">Navigation</div>
           <Link to="/products" className="block mt-4 text-xs text-white/50 hover:text-[#d4af37] transition uppercase tracking-widest">
-            ← Back to Collection
+            ← Back to Products
           </Link>
         </div>
       </div>

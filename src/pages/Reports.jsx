@@ -4,6 +4,8 @@ import Sidebar from '../components/Sidebar';
 import { supabase } from '../services/supabaseClient';
 import { useRights } from '../context/UserRightsContext';
 import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState('products');
@@ -12,6 +14,9 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const { hasRight } = useRights();
   const navigate = useNavigate();
+  const [activeReport, setActiveReport] = useState('sales');
+  const {loading: rightsLoading } = useRights(); 
+  
 
   useEffect(() => {
     if (!hasRight('REP_VIEW')) {
@@ -61,6 +66,12 @@ export default function Reports() {
       .map(([name, count]) => ({ name, count }));
   }, [acquisitions]);
 
+  const [searchParams] = useSearchParams();
+useEffect(() => {
+  const tab = searchParams.get('tab');
+  if (tab) setActiveTab(tab);
+}, [searchParams]);
+
   return (
     <div className="min-h-screen bg-[#050505] text-white pt-20">
       <Navbar />
@@ -98,7 +109,7 @@ export default function Reports() {
             <div>
               <div className="flex justify-between items-end mb-8">
                 <div>
-                  <span className="text-xs text-white/50">FULL INVENTORY LISTING</span>
+                  <span className="text-xs text-white/50">FULL PRODUCT LISTING</span>
                   <div className="text-2xl mt-1">Product Valuation Report</div>
                 </div>
                 <div className="text-xs text-white/50">Total Value: ₱{products.reduce((sum, p) => sum + (p.price || 0) * (p.stock || 0), 0).toLocaleString()}</div>

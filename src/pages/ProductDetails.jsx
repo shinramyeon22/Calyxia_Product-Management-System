@@ -88,7 +88,7 @@ export default function ProductDetails() {
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-4xl serif-font">Asset Not Found</h1>
-          <Link to="/products" className="mt-8 inline-block text-[#d4af37]">← Return to Collection</Link>
+          <Link to="/products" className="mt-8 inline-block text-[#d4af37]">← Return to Product</Link>
         </div>
       </div>
     );
@@ -99,7 +99,7 @@ export default function ProductDetails() {
       <Navbar />
       
       <nav className="px-8 py-12">
-        <Link to="/products" className="text-xs tracking-widest text-[#d4af37] hover:underline">← BACK TO COLLECTION</Link>
+        <Link to="/products" className="text-xs tracking-widest text-[#d4af37] hover:underline">← BACK TO PRODUCT</Link>
       </nav>
 
       <div className="max-w-7xl mx-auto px-8 grid md:grid-cols-2 gap-16">

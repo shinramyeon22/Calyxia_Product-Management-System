@@ -126,7 +126,7 @@ export default function AdminDashboard() {
           </div>
 
           <div className="mt-8 text-xs text-white/40 tracking-widest">
-            Note: SUPERADMIN accounts have full system rights. ADMIN can manage users and inventory. USER accounts have view-only access to the collection.
+            Note: SUPERADMIN accounts have full system rights. ADMIN can manage users and product listing. USER accounts have view-only access to the products.
           </div>
         </div>
       </div>
