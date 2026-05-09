@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import Reports from './pages/Reports';
 import { ToastProvider } from './context/ToastProvider';
 import PageTransition from './components/PageTransition';
+import { useLocation } from 'react-router-dom';
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const { session, user, loading } = useAuth();
@@ -39,25 +40,37 @@ if (requireAdmin) {
 };
 
 function App() {
+  // 1. Get the current location
+  const location = useLocation();
+
   return (
     <ToastProvider>
       <PageTransition>
-        <Routes>
+        {/* 2. Add location and key to Routes */}
+        <Routes location={location} key={location.pathname}>
+          {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
 
+          {/* 3. Redirect root directly to dashboard */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+          {/* Protected Routes */}
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+          
+          {/* Note: Ensure the link to here is /product/123, not /products/123 */}
           <Route path="/product/:id" element={<ProtectedRoute><ProductDetails /></ProtectedRoute>} />
 
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
 
+          {/* Admin Routes */}
           <Route path="/admin" element={<ProtectedRoute requireAdmin={true}><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/products" element={<ProtectedRoute requireAdmin={true}><ProductManagement /></ProtectedRoute>} />
           <Route path="/deleted-items" element={<ProtectedRoute requireAdmin={true}><DeletedItemsPage /></ProtectedRoute>} />
 
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          {/* Catch-all */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </PageTransition>

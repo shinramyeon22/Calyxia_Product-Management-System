@@ -20,28 +20,26 @@ export default function Products() {
 
   const { user } = useAuth();
   const { showToast } = useToast();
-const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   
+  // 1. Initialize state from URL
   const [activeTab, setActiveTab] = useState(
     searchParams.get('tab') === 'listing' ? 'listing' : 'products'
   );
 
-  // eslint-disable-next-line no-unused-vars
-  const _setActiveTab = setActiveTab; // This tricks ESLint
-
-  // Sync activeTab changes back to URL
+  // 2. Sync state when the URL changes (Crucial for Sidebar clicks)
   useEffect(() => {
-    const newParams = new URLSearchParams(searchParams);
-    if (activeTab === 'listing') {
-      newParams.set('tab', 'listing');
-    } else {
-      newParams.delete('tab');
-    }
-    setSearchParams(newParams, { replace: true });
-  }, [activeTab, searchParams, setSearchParams]);
+    const tab = searchParams.get('tab');
+    setActiveTab(tab === 'listing' ? 'listing' : 'products');
+  }, [searchParams]);
 
-  // eslint-disable-next-line no-unused-vars
-  // setActiveTab is kept for future use (e.g. if you add back tab buttons or internal switching)
+  useEffect(() => {
+  const tabFromUrl = searchParams.get('tab') === 'listing' ? 'listing' : 'products';
+  if (activeTab !== tabFromUrl) {
+    setActiveTab(tabFromUrl);
+  }
+}, [searchParams]);
+
 
   useEffect(() => {
     async function getProducts() {
@@ -128,7 +126,7 @@ const [searchParams, setSearchParams] = useSearchParams();
     const rows = filteredProducts.map(p => 
       activeTab === 'products' 
         ? [p.prodcode, p.description, p.unit, p.record_status === 'A' ? 'ACTIVE' : 'INACTIVE', p.stock || 0]
-        : [p.prodcode, p.description, p.unit, Number(p.price).toFixed(2), p.effdate ? new Date(p.effdate).toLocaleDateString() : '']
+        : [p.prodcode, p.description, p.unit, Number(p.price).toFixed(2), p.effective_date ? new Date(p.effective_date).toLocaleDateString() : '']
     );
     const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -255,7 +253,7 @@ const [searchParams, setSearchParams] = useSearchParams();
                       ) : (
                         <>
                           <td className="px-8 py-6 text-right font-medium text-[#d4af37]">₱{Number(p.price || 0).toLocaleString()}</td>
-                          <td className="px-8 py-6 text-sm text-white/60">{p.effdate ? new Date(p.effdate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}</td>
+                          <td className="px-8 py-6 text-sm text-white/60">{p.effective_date ? new Date(p.effective_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}</td>
                           <td className="px-8 py-6 text-center">
                             <div className="flex justify-center gap-3">
                               <button onClick={() => openHistoryModal(p)} className="px-4 py-2 text-xs border border-white/20 text-white/70 hover:border-[#d4af37] hover:text-[#d4af37] rounded-lg transition">HISTORY</button>
@@ -355,7 +353,7 @@ const [searchParams, setSearchParams] = useSearchParams();
                   ₱{Number(selectedProduct.price || 0).toLocaleString()}
                 </div>
                 <div className="text-xs text-white/40 mt-1">
-                  Effective {selectedProduct.effdate ? new Date(selectedProduct.effdate).toLocaleDateString() : '—'}
+                  Effective {selectedProduct.effective_date ? new Date(selectedProduct.effective_date).toLocaleDateString() : '—'}
                 </div>
               </div>
 
