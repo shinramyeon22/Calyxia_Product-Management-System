@@ -4,22 +4,23 @@ import Sidebar from '../components/Sidebar';
 import { supabase } from '../services/supabaseClient';
 import { useRights } from '../context/UserRightsContext';
 import { useNavigate } from 'react-router-dom';
-import { useSearchParams } from 'react-router-dom';
-import { useLocation } from 'react-router-dom';
+import { useSidebar } from '../context/SidebarContext';
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState('products');
   const [products, setProducts] = useState([]);
-  const [acquisitions, setAcquisitions] = useState([]);
+  const [topSelling, setTopSelling] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const { hasRight } = useRights();
   const navigate = useNavigate();
-  const [activeReport, setActiveReport] = useState('sales');
-  const {loading: rightsLoading } = useRights(); 
-  
+  const { isSidebarOpen } = useSidebar();
+
+  const canViewProductReport = hasRight('REP_001');
+  const canViewTopSellingReport = hasRight('REP_002');
 
   useEffect(() => {
-    if (!hasRight('REP_VIEW')) {
+    if (!canViewProductReport && !canViewTopSellingReport) {
       navigate('/products');
       return;
     }
@@ -27,149 +28,179 @@ export default function Reports() {
     async function fetchData() {
       setLoading(true);
       try {
-        const { data: prodData } = await supabase
-          .from('product')
-          .select('*')
-          .eq('record_status', 'A')
-          .order('price', { ascending: false });
-        setProducts(prodData || []);
+        if (activeTab === 'products' && canViewProductReport) {
+          const { data } = await supabase
+            .from('product')
+            .select('*')
+            .eq('record_status', 'A')
+            .order('id', { ascending: true });
+          setProducts(data || []);
+        }
 
-        try {
-          const { data: acqData } = await supabase
-            .from('acquisition')
-            .select(`*, product:product_id (name, price)`)
-            .order('acquired_at', { ascending: false })
-            .limit(50);
-          setAcquisitions(acqData || []);
-        } catch {
-          setAcquisitions([]);
+        if (activeTab === 'topselling' && canViewTopSellingReport) {
+          const { data } = await supabase.rpc('get_top_selling_products', { limit_count: 10 });
+          setTopSelling(data || []);
         }
       } catch (err) {
-        console.error(err);
+        console.error('Failed to load reports:', err);
       } finally {
         setLoading(false);
       }
     }
+
     fetchData();
-  }, [hasRight, navigate]);
-
-  const topSelling = React.useMemo(() => {
-    if (!acquisitions.length) return [];
-    const counts = {};
-    acquisitions.forEach(a => {
-      const name = a.product?.name || 'Unknown';
-      counts[name] = (counts[name] || 0) + 1;
-    });
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name, count]) => ({ name, count }));
-  }, [acquisitions]);
-
-  const [searchParams] = useSearchParams();
-useEffect(() => {
-  const tab = searchParams.get('tab');
-  if (tab) setActiveTab(tab);
-}, [searchParams]);
+  }, [activeTab, canViewProductReport, canViewTopSellingReport, navigate]);
 
   return (
     <div className="min-h-screen bg-[#050505] text-white pt-20">
       <Navbar />
       <div className="flex">
         <Sidebar />
-        <div className="flex-1 max-w-7xl mx-auto px-8 py-16">
+        <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
           <div className="mb-12">
-            <span className="text-[#d4af37] text-xs tracking-[0.5em]">INTELLIGENCE</span>
-            <h1 className="serif-font text-6xl italic tracking-tighter">Reports & Analytics</h1>
+            <div className="text-[#d4af37] text-xs tracking-[0.5em]">ANALYTICS</div>
+            <h1 className="serif-font text-7xl italic tracking-tighter mt-2">Reports</h1>
+            <p className="text-white/50 mt-3 text-lg">Business intelligence & performance insights</p>
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-white/10 mb-10">
-            <button 
-              onClick={() => setActiveTab('products')}
-              className={`px-8 py-4 text-xs tracking-widest transition ${activeTab === 'products' ? 'border-b-2 border-[#d4af37] text-[#d4af37]' : 'text-white/50 hover:text-white'}`}
-            >
-              PRODUCT REPORT
-            </button>
-            
-            {/* TOP SELLING TAB - Only SUPERADMIN (REP_TOP) */}
-            {hasRight('REP_TOP') && (
-              <button 
+          <div className="flex border-b border-white/10 mb-8">
+            {canViewProductReport && (
+              <button
+                onClick={() => setActiveTab('products')}
+                className={`px-10 py-4 text-sm tracking-[0.3em] transition-all ${activeTab === 'products' ? 'border-b-2 border-[#d4af37] text-[#d4af37]' : 'text-white/50 hover:text-white'}`}
+              >
+                PRODUCT LISTING
+              </button>
+            )}
+            {canViewTopSellingReport && (
+              <button
                 onClick={() => setActiveTab('topselling')}
-                className={`px-8 py-4 text-xs tracking-widest transition ${activeTab === 'topselling' ? 'border-b-2 border-[#d4af37] text-[#d4af37]' : 'text-white/50 hover:text-white'}`}
+                className={`px-10 py-4 text-sm tracking-[0.3em] transition-all ${activeTab === 'topselling' ? 'border-b-2 border-[#d4af37] text-[#d4af37]' : 'text-white/50 hover:text-white'}`}
               >
                 TOP SELLING
               </button>
             )}
           </div>
 
-          {loading ? (
-            <div className="text-center py-20 text-[#d4af37] text-xs tracking-widest">GENERATING REPORT...</div>
-          ) : activeTab === 'products' ? (
-            <div>
-              <div className="flex justify-between items-end mb-8">
-                <div>
-                  <span className="text-xs text-white/50">FULL PRODUCT LISTING</span>
-                  <div className="text-2xl mt-1">Product Valuation Report</div>
-                </div>
-                <div className="text-xs text-white/50">Total Value: ₱{products.reduce((sum, p) => sum + (p.price || 0) * (p.stock || 0), 0).toLocaleString()}</div>
+          {/* Content Area */}
+          <div className="pb-20">
+            {loading ? (
+              <div className="flex justify-center py-20">
+                <div className="text-[#d4af37] text-xs tracking-[0.5em] animate-pulse">LOADING REPORT...</div>
               </div>
+            ) : activeTab === 'topselling' && canViewTopSellingReport ? (
+              <div className="space-y-8">
+                <div className="flex justify-between items-end">
+                  <div>
+                    <h2 className="text-4xl serif-font italic">Top Selling Products</h2>
+                    <p className="text-white/60">Top 10 products ranked by total quantity sold</p>
+                  </div>
+                  <button 
+                    onClick={() => window.location.reload()} 
+                    className="px-6 py-3 border border-white/30 hover:bg-white/5 rounded-lg text-sm tracking-widest flex items-center gap-2"
+                  >
+                    ↻ Refresh
+                  </button>
+                </div>
 
-              <div className="border border-white/10 overflow-hidden">
+                {topSelling.length > 0 ? (
+                  <>
+                    {topSelling[0] && (
+                      <div className="bg-gradient-to-r from-emerald-900/50 to-emerald-800/30 border border-emerald-500/30 rounded-3xl p-8 flex items-center gap-6">
+                        <div className="text-6xl">🏆</div>
+                        <div>
+                          <div className="text-emerald-400 text-sm tracking-[0.5em] uppercase">TOP SELLING PRODUCT</div>
+                          <div className="text-4xl font-medium mt-1">{topSelling[0].description}</div>
+                          <div className="text-emerald-400 font-mono mt-2">
+                            {topSelling[0].prodcode} • {topSelling[0].unit}
+                          </div>
+                        </div>
+                        <div className="ml-auto text-right">
+                          <div className="text-6xl font-mono text-emerald-400">{topSelling[0].total_sold}</div>
+                          <div className="text-sm text-emerald-400/70">units sold</div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="border border-white/10 rounded-3xl overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-black/60 border-b border-white/10">
+                          <tr className="text-xs tracking-widest text-white/60">
+                            <th className="px-8 py-6 text-left">RANK</th>
+                            <th className="px-8 py-6 text-left">PRODUCT</th>
+                            <th className="px-8 py-6 text-center">UNIT</th>
+                            <th className="px-8 py-6 text-right">TOTAL QTY SOLD</th>
+                            <th className="px-8 py-6 text-left">VOLUME BAR</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/10">
+                          {topSelling.map((item, index) => (
+                            <tr key={index} className="hover:bg-white/5 transition">
+                              <td className="px-8 py-6 text-2xl font-mono text-[#d4af37]">#{index + 1}</td>
+                              <td className="px-8 py-6">
+                                <div className="font-medium">{item.description}</div>
+                                <div className="text-xs text-white/50 font-mono">{item.prodcode}</div>
+                              </td>
+                              <td className="px-8 py-6 text-center">
+                                <span className="px-4 py-1 bg-white/10 rounded-full text-xs uppercase">{item.unit}</span>
+                              </td>
+                              <td className="px-8 py-6 text-right font-mono text-lg text-emerald-400">
+                                {item.total_sold}
+                              </td>
+                              <td className="px-8 py-6">
+                                <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-emerald-500 transition-all"
+                                    style={{ width: `${Math.min((item.total_sold / (topSelling[0]?.total_sold || 1)) * 100, 100)}%` }}
+                                  />
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-20 text-white/30">No sales data found.</div>
+                )}
+              </div>
+            ) : activeTab === 'products' && canViewProductReport ? (
+              <div className="border border-white/10 rounded-3xl overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-black/60">
+                  <thead className="bg-black/60 border-b border-white/10">
                     <tr className="text-xs tracking-widest text-white/60">
-                      <th className="px-8 py-5 text-left">ID / CODE</th>
-                      <th className="px-8 py-5 text-left">DESCRIPTION</th>
-                      <th className="px-8 py-5">UNIT</th>
-                      <th className="px-8 py-5 text-right">PRICE</th>
-                      <th className="px-8 py-5 text-right">STOCK</th>
-                      <th className="px-8 py-5 text-right">TOTAL VALUE</th>
+                      <th className="px-8 py-6 text-left">PRODUCT CODE</th>
+                      <th className="px-8 py-6 text-left">DESCRIPTION</th>
+                      <th className="px-8 py-6 text-center">UNIT</th>
+                      <th className="px-8 py-6 text-right">CURRENT PRICE</th>
+                      <th className="px-8 py-6 text-center">STATUS</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
-                    {products.map(p => (
-                      <tr key={p.id} className="hover:bg-white/5">
-                        <td className="px-8 py-6 font-mono text-xs">{p.id}</td>
-                        <td className="px-8 py-6">{p.name || p.description?.substring(0, 40)}</td>
-                        <td className="px-8 py-6 text-center text-xs text-white/60">{p.unit}</td>
-                        <td className="px-8 py-6 text-right text-[#d4af37]">₱{Number(p.price || 0).toLocaleString()}</td>
-                        <td className="px-8 py-6 text-right font-mono">{p.stock || 0}</td>
-                        <td className="px-8 py-6 text-right font-mono text-emerald-400">₱{((p.price || 0) * (p.stock || 0)).toLocaleString()}</td>
+                    {products.map((p, index) => (
+                      <tr key={index} className="hover:bg-white/5 transition">
+                        <td className="px-8 py-5 font-mono text-[#d4af37]">{p.prodcode}</td>
+                        <td className="px-8 py-5">{p.description}</td>
+                        <td className="px-8 py-5 text-center">
+                          <span className="px-3 py-1 bg-white/5 rounded-full text-xs">{p.unit}</span>
+                        </td>
+                        <td className="px-8 py-5 text-right font-mono text-[#d4af37]">
+                          ₱{Number(p.current_price || 0).toLocaleString()}
+                        </td>
+                        <td className="px-8 py-5 text-center">
+                          <span className={`px-4 py-1 text-xs rounded-full ${p.record_status === 'A' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                            {p.record_status === 'A' ? 'ACTIVE' : 'INACTIVE'}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            </div>
-          ) : (
-            <div>
-              <div className="mb-8">
-                <span className="text-xs text-white/50">ACQUISITION INTELLIGENCE</span>
-                <div className="text-2xl mt-1">Top Selling Assets</div>
-                <p className="text-white/60 text-sm mt-2">Based on recent acquisition records (last 50 transactions)</p>
-              </div>
-
-              {topSelling.length > 0 ? (
-                <div className="grid md:grid-cols-2 gap-6">
-                  {topSelling.map((item, idx) => (
-                    <div key={idx} className="border border-white/10 p-8 flex items-center gap-6">
-                      <div className="text-6xl font-mono text-white/10">0{idx + 1}</div>
-                      <div className="flex-1">
-                        <div className="text-xl">{item.name}</div>
-                        <div className="text-emerald-400 text-sm tracking-widest mt-1">{item.count} ACQUIRED</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-20 border border-white/10 text-white/50">
-                  No acquisition data available yet.<br />
-                  <span className="text-xs">Acquire products via Product Details to generate insights.</span>
-                </div>
-              )}
-            </div>
-          )}
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

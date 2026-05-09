@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import { supabase } from '../services/supabaseClient';
 import { Link } from 'react-router-dom';
+import { useSidebar } from '../context/SidebarContext';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ export default function Dashboard() {
 
   const userType = (user?.user_type || user?.raw_user_meta_data?.user_type || 'USER').toUpperCase();
   const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(userType);
+  const { isSidebarOpen } = useSidebar();
 
   useEffect(() => {
     async function fetchStats() {
@@ -41,9 +43,9 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#050505] text-white pt-20">
       <Navbar />
-      <div className="flex">
-        <Sidebar />
-        <div className="flex-1 max-w-7xl mx-auto px-8 py-16">
+<div className="flex">
+  <Sidebar />
+ <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
           <div className="mb-16">
             <span className="text-[#d4af37] text-xs tracking-[0.5em]">OVERVIEW</span>
             <h1 className="serif-font text-7xl italic tracking-tighter mt-2">Welcome back, {user?.email?.split('@')[0] || 'User'}</h1>
@@ -72,7 +74,7 @@ export default function Dashboard() {
               <div className="text-xs tracking-[0.5em] text-white/50 mb-4">ARCHIVE</div>
               <div className="text-7xl font-mono text-[#d4af37] mb-2">{loading ? '—' : stats.deletedCount}</div>
               <div className="text-sm text-white/70">Soft-Deleted Items</div>
-              {hasRight('PRD_DEL') && (
+              {hasRight('PRD_RESTORE') && (
                 <Link to="/deleted-items" className="mt-8 inline-block text-xs tracking-widest border-b border-white/30 hover:border-[#d4af37] pb-1">VIEW DELETED →</Link>
               )}
             </div>
@@ -86,7 +88,9 @@ export default function Dashboard() {
               {isAdmin && (
                 <>
                   <Link to="/admin/products" className="px-8 py-4 border border-white/20 hover:border-[#d4af37] hover:text-[#d4af37] text-sm tracking-widest transition">MANAGE PRODUCTS</Link>
-                  <Link to="/reports" className="px-8 py-4 border border-white/20 hover:border-[#d4af37] hover:text-[#d4af37] text-sm tracking-widest transition">VIEW REPORTS</Link>
+                  {(hasRight('REP_001') || hasRight('REP_002')) && (
+                    <Link to="/reports" className="px-8 py-4 border border-white/20 hover:border-[#d4af37] hover:text-[#d4af37] text-sm tracking-widest transition">VIEW REPORTS</Link>
+                  )}
                 </>
               )}
             </div>

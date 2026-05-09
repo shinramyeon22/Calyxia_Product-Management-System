@@ -4,21 +4,21 @@ import { useAuth } from '../context/AuthContext';
 import { useRights } from '../context/UserRightsContext';
 import { useToast } from '../context/useToast';
 import { 
-  getProducts, addProduct, updateProduct, softDeleteProduct, 
-  getPriceHistory, addPriceEntry, getCurrentPrice 
+  getProductsForManagement, addProduct, updateProduct, softDeleteProduct, 
+  getPriceHistory, addPriceEntry
+  , getProductByProdcode
 } from '../services/productService';
 
 import Navbar from '../components/Navbar';
 import Sidebar from '../components/Sidebar';
 import ErrorBoundary from '../components/ErrorBoundary';
-
+import { useSidebar } from '../context/SidebarContext';
 export default function ProductManagement() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [priceHistories, setPriceHistories] = useState({});
-  const [currentPrices, setCurrentPrices] = useState({});
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -31,25 +31,21 @@ export default function ProductManagement() {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active');
 
   const { user } = useAuth();
   const { showToast } = useToast();
   const { hasRight, loading: rightsLoading } = useRights();
   const userType = (user?.user_type || user?.raw_user_meta_data?.user_type || 'USER').toUpperCase();
   const canViewAudit = hasRight('AUDIT_VIEW');
+  const { isSidebarOpen } = useSidebar();
 
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getProducts(userType);
+      const data = await getProductsForManagement(userType);
       setProducts(data);
-
-      const prices = {};
-      for (const p of data) {
-        prices[p.prodcode] = await getCurrentPrice(p.prodcode);
-      }
-      setCurrentPrices(prices);
     } catch (err) {
       setError(err.message || 'Failed to load Product Inventory');
     } finally {
@@ -97,18 +93,25 @@ export default function ProductManagement() {
     setShowAddModal(true);
   };
 
-  const openEditModal = (p) => {
+  const openEditModal = async (p) => {
     if (!hasRight('PRD_EDIT')) return;
-    setSelectedProduct(p);
-    setFormData({
-      prodcode: p.prodcode || '',
-      description: p.description || '',
-      unit: p.unit || 'ea',
-      price: p.price || '',
-      stock: p.stock || 0,
-      image_url: p.image_url || ''
-    });
-    setShowEditModal(true);
+    try {
+      const full = await getProductByProdcode(p.prodcode);
+      const next = full || p;
+
+      setSelectedProduct(next);
+      setFormData({
+        prodcode: next.prodcode || '',
+        description: next.description || '',
+        unit: next.unit || 'ea',
+        price: next.price || '',
+        stock: next.stock || 0,
+        image_url: next.image_url || ''
+      });
+      setShowEditModal(true);
+    } catch (err) {
+      showToast('Failed to load asset for editing: ' + (err.message || err), 'error');
+    }
   };
 
   const openDeleteDialog = (p) => {
@@ -171,8 +174,6 @@ export default function ProductManagement() {
       await addPriceEntry(prodcode, priceForm.effDate, priceForm.unitPrice, user?.id);
       const h = await getPriceHistory(prodcode);
       setPriceHistories(prev => ({ ...prev, [prodcode]: h }));
-      const np = await getCurrentPrice(prodcode);
-      setCurrentPrices(prev => ({ ...prev, [prodcode]: np }));
       setPriceForm({ effDate: '', unitPrice: '' });
       showToast('Price entry added!', 'success');
     } catch (err) {
@@ -201,11 +202,12 @@ export default function ProductManagement() {
     return (
       <div className="min-h-screen bg-[#050505] text-white pt-20">
         <Navbar />
-        <div className="flex">
-          <Sidebar />
-          <div className="flex-1 flex items-center justify-center h-[70vh]">
+<div className="flex">
+  <Sidebar />
+ <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
+
             <div className="text-center">
-              <div className="w-8 h-[1px] bg-[#d4af37] mx-auto mb-6 animate-pulse"></div>
+              <div className="w-8 h-px bg-[#d4af37] mx-auto mb-6 animate-pulse"></div>
               <p className="text-[#d4af37] text-xs tracking-[0.5em]">AUTHORIZING ACCESS...</p>
             </div>
           </div>
@@ -218,42 +220,72 @@ export default function ProductManagement() {
     <ErrorBoundary>
       <div className="min-h-screen bg-[#050505] text-white pt-20">
         <Navbar />
-        <div className="flex">
-          <Sidebar />
-          <div className="flex-1 max-w-7xl mx-auto px-8 py-16">
-            <div className="flex justify-start items-end mb-12 gap-8">
-              <div className="flex gap-4">
+<div className="flex">
+  <Sidebar />
+<div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
+              <div className="flex flex-col gap-8 mb-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <div>
+                    <span className="block text-[#d4af37] text-xs tracking-[0.5em] uppercase">Products</span>
+                    <h1 className="serif-font text-5xl italic tracking-tighter">Manage product catalogue</h1>
+                  </div>
+                  {userType === 'SUPERADMIN' && (
+                    <span className="rounded-full border border-[#d4af37] bg-[#12230f] px-3 py-1 text-[11px] uppercase tracking-[0.35em] text-[#d4af37]">
+                      SUPERADMIN
+                    </span>
+                  )}
+                </div>
+                <p className="text-white/60 max-w-2xl">Search products by code or description, then use the table controls to manage active and inactive inventory.</p>
+              </div>
+
+              <div className="flex flex-wrap gap-4 items-center">
                 {hasRight('PRD_ADD') && (
-                  <button onClick={openAddModal} className="border border-[#d4af37] text-[#d4af37] px-10 py-4 text-xs tracking-widest hover:bg-[#d4af37] hover:text-black transition-all">
-                    + ADD NEW ASSET
+                  <button onClick={openAddModal} className="rounded-full border border-[#d4af37] bg-[#12230f] px-8 py-4 text-xs tracking-[0.25em] text-[#d4af37] hover:bg-[#d4af37] hover:text-black transition">
+                    + ADD PRODUCT
                   </button>
                 )}
-                <button onClick={fetchProducts} className="border-2 border-[#d4af37] text-[#d4af37] px-8 py-4 text-xs tracking-widest hover:bg-[#d4af37] hover:text-black transition">REFRESH</button>
-              </div>
-              <div>
-                <span className="block text-[#d4af37] text-xs tracking-[0.5em]">INSTITUTIONAL CONTROL</span>
-                <h1 className="serif-font text-6xl italic tracking-tighter">Product Vault</h1>
+                <button onClick={fetchProducts} className="rounded-full border border-white/10 px-8 py-4 text-xs tracking-[0.25em] text-white/70 hover:border-[#d4af37] hover:text-[#d4af37] transition">
+                  REFRESH
+                </button>
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 mb-8">
-              <input 
-                type="text" 
-                placeholder="SEARCH ASSETS..." 
-                value={searchTerm} 
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 bg-transparent border border-white/20 px-6 py-4 text-sm tracking-widest focus:border-[#d4af37] outline-none placeholder:text-white/40"
-              />
-              <select 
-                value={stockFilter} 
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex-1 rounded-full border border-white/10 bg-[#081009] px-4 py-3">
+                <input
+                  type="text"
+                  placeholder="Search by code or description..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-transparent text-sm tracking-widest text-white outline-none placeholder:text-white/40"
+                />
+              </div>
+
+              <div className="inline-flex rounded-full bg-white/5 p-1.5">
+                {['active', 'inactive', 'all'].map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    className={`rounded-full px-5 py-2 text-xs tracking-[0.35em] transition ${statusFilter === status ? 'bg-[#d4af37] text-black' : 'text-white/70 hover:bg-white/10'}`}
+                  >
+                    {status === 'active' ? 'ACTIVE' : status === 'inactive' ? 'INACTIVE' : 'ALL'}
+                  </button>
+                ))}
+              </div>
+
+              <select
+                value={stockFilter}
                 onChange={(e) => setStockFilter(e.target.value)}
-                className="bg-black border border-white/20 px-6 py-4 text-sm tracking-widest focus:border-[#d4af37] outline-none"
+                className="rounded-full bg-[#081009] border border-white/10 px-5 py-3 text-xs tracking-[0.35em] text-white/70 outline-none focus:border-[#d4af37]"
               >
                 <option value="all">ALL STOCK</option>
                 <option value="inStock">IN STOCK (≥1)</option>
                 <option value="lowStock">LOW STOCK (0-3)</option>
               </select>
             </div>
+          </div>
 
             {error && <div className="bg-red-900/20 border border-red-500/50 p-6 mb-10 text-red-400">{error}</div>}
 
@@ -261,13 +293,11 @@ export default function ProductManagement() {
               <table className="w-full text-left">
                 <thead className="bg-black/50 border-b border-white/10">
                   <tr className="text-xs tracking-widest text-white/60">
-                    <th className="px-8 py-6">ID</th>
+                    <th className="px-8 py-6">PROD. CODE</th>
                     <th className="px-8 py-6">DESCRIPTION</th>
                     <th className="px-8 py-6">UNIT</th>
-                    <th className="px-8 py-6">STOCK</th>
-                    <th className="px-8 py-6">IMAGE</th>
-                    <th className="px-8 py-6">CURRENT PRICE</th>
-                    {canViewAudit && <th className="px-8 py-6">CREATED</th>}
+                    <th className="px-8 py-6">STATUS</th>
+                    <th className="px-8 py-6">STAMP</th>
                     <th className="px-8 py-6 text-right">ACTIONS</th>
                   </tr>
                 </thead>
@@ -282,12 +312,17 @@ export default function ProductManagement() {
                         if (stockFilter === 'inStock') return (p.stock || 0) >= 1;
                         if (stockFilter === 'lowStock') return (p.stock || 0) >= 0 && (p.stock || 0) <= 3;
                         return true;
+                      })
+                      .filter(p => {
+                        if (statusFilter === 'active') return p.record_status === 'A';
+                        if (statusFilter === 'inactive') return p.record_status === 'I';
+                        return true;
                       });
 
                     if (filtered.length === 0) {
                       return (
                         <tr>
-                          <td colSpan={canViewAudit ? 8 : 7} className="px-8 py-16 text-center text-white/50">
+                          <td colSpan={6} className="px-8 py-16 text-center text-white/50">
                             No assets match your search or filter.
                           </td>
                         </tr>
@@ -296,31 +331,41 @@ export default function ProductManagement() {
 
                     return filtered.map(p => {
                       const isExpanded = expandedRows.has(p.prodcode);
-                      const currPrice = currentPrices[p.prodcode];
                       return (
                         <React.Fragment key={p.prodcode}>
                           <tr className="hover:bg-white/5 transition">
                             <td className="px-8 py-8 font-mono text-sm">{p.prodcode}</td>
                             <td className="px-8 py-8 text-sm max-w-xs truncate">{p.description || '—'}</td>
                             <td className="px-8 py-8 text-xs uppercase tracking-widest text-white/60">{p.unit || '—'}</td>
-                            <td className="px-8 py-8 font-mono text-sm text-emerald-400">{p.stock || 0}</td>
                             <td className="px-8 py-8">
-                              {p.image_url ? (
-                                <img src={p.image_url} alt="" className="w-12 h-12 object-cover border border-white/20" />
-                              ) : '—'}
+                              <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] tracking-[0.35em] ${p.record_status === 'A' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-red-500/10 text-red-300'}`}>
+                                {p.record_status === 'A' ? 'ACTIVE' : 'INACTIVE'}
+                              </span>
                             </td>
-                            <td className="px-8 py-8 text-[#d4af37]">₱{Number((currPrice ?? p.price) ?? 0).toLocaleString()}</td>
-                            {canViewAudit && <td className="px-8 py-8 text-xs text-white/50">{p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}</td>}
+                            <td className="px-8 py-8 text-xs text-white/50 font-mono">{p.stamp || '—'}</td>
                             <td className="px-8 py-8 text-right">
-                              <div className="flex items-center justify-end gap-4">
-                                <button onClick={() => toggleRow(p.prodcode)} className="text-xs text-white/50 hover:text-white tracking-widest">
-                                  {isExpanded ? 'HIDE HISTORY' : 'PRICE HISTORY'}
+                              <div className="flex flex-wrap items-center justify-end gap-3">
+                                <button
+                                  onClick={() => toggleRow(p.prodcode)}
+                                  className={`rounded-full border px-4 py-2 text-xs tracking-[0.35em] transition ${
+                                    isExpanded
+                                      ? 'border-[#d4af37] text-[#d4af37] hover:bg-[#d4af37] hover:text-black'
+                                      : 'border-white/10 text-white/50 hover:text-white hover:border-white/30'
+                                  }`}
+                                  aria-label={isExpanded ? 'Hide price history' : 'Show price history'}
+                                  title={isExpanded ? 'HIDE HISTORY' : 'PRICE HISTORY'}
+                                >
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 4h18"></path>
+                                    <path d="M7 20h10"></path>
+                                    <path d="M12 4v16"></path>
+                                  </svg>
                                 </button>
-                                {hasRight('PRD_EDIT') && <button onClick={() => openEditModal(p)} className="text-white/70 hover:text-white text-xs tracking-widest">EDIT</button>}
-                                
-                                {/* DELETE BUTTON - Only SUPERADMIN (PRD_DEL) */}
+                                {hasRight('PRD_EDIT') && <button onClick={() => openEditModal(p)} className="rounded-full border border-white/10 px-4 py-2 text-xs text-white/70 hover:border-[#d4af37] hover:text-[#d4af37] transition">EDIT</button>}
                                 {hasRight('PRD_DEL') && (
-                                  <button onClick={() => openDeleteDialog(p)} className="text-red-400/70 hover:text-red-400 text-xs tracking-widest">DELETE</button>
+                                  <button onClick={() => openDeleteDialog(p)} className="rounded-full border border-red-500/20 px-4 py-2 text-xs text-red-400 hover:border-red-400 hover:text-red-300 transition">
+                                    DELETE
+                                  </button>
                                 )}
                               </div>
                             </td>
@@ -354,7 +399,7 @@ export default function ProductManagement() {
                                         {(priceHistories[p.prodcode] || []).length > 0 ? priceHistories[p.prodcode].map((entry) => (
                                           <tr key={entry.effdate} className="border-b border-white/10 last:border-0">
                                             <td className="px-6 py-4 text-white/70">{new Date(entry.effdate).toLocaleDateString()}</td>
-                                            <td className="px-6 py-4 text-right text-[#d4af37]">₱{Number(entry.unitprice).toLocaleString()}</td>
+                                            <td className="px-6 py-4 text-right text-[#d4af37]">${Number(entry.unitprice).toLocaleString()}</td>
                                           </tr>
                                         )) : (
                                           <tr><td colSpan="2" className="px-6 py-8 text-center text-white/40 text-xs">No price history yet.</td></tr>
@@ -380,7 +425,7 @@ export default function ProductManagement() {
         
         {/* ==================== ADD MODAL (FIXED + RESPONSIVE) ==================== */}
         {showAddModal && hasRight('PRD_ADD') && (
-          <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto" onClick={() => setShowAddModal(false)}>
+          <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-100 p-4 sm:p-6 overflow-y-auto" onClick={() => setShowAddModal(false)}>
             <div className="bg-[#0a0a0c] border border-white/10 w-full max-w-md sm:max-w-lg p-6 sm:p-10 rounded-none relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-white/50 hover:text-white text-3xl">×</button>
               
@@ -411,41 +456,11 @@ export default function ProductManagement() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs tracking-widest text-white/50 block mb-2">PRICE (₱)</label>
+                  <label className="text-xs tracking-widest text-white/50 block mb-2">PRICE ($)</label>
                   <input type="number" step="0.01" value={formData.price} onChange={e=>setFormData({...formData, price:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]" />
                 </div>
 
-                {/* ========== FIXED IMAGE SECTION (ADD) ========== */}
-                <div>
-                  <label className="text-xs tracking-widest text-white/50 block mb-2">PRODUCT IMAGE</label>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-shrink-0">
-                      <img 
-                        id="addImagePreview" 
-                        src={formData.image_url || 'https://via.placeholder.com/80x80/111/ddd?text=No+Image'} 
-                        className="w-16 h-16 object-cover border border-white/20 rounded" 
-                        alt="Preview" 
-                      />
-                    </div>
-                    <div>
-                      <button 
-                        type="button"
-                        onClick={() => document.getElementById('addImageUpload').click()}
-                        className="px-5 py-2 text-xs border border-white/30 hover:border-[#d4af37] hover:text-[#d4af37] transition"
-                      >
-                        UPLOAD NEW IMAGE
-                      </button>
-                      <input 
-                        type="file" 
-                        id="addImageUpload" 
-                        accept="image/*" 
-                        className="hidden"
-                        onChange={(e) => handleImageUpload(e, 'add')}
-                      />
-                      <p className="text-[10px] text-white/40 mt-1">JPG or PNG • Max 2MB</p>
-                    </div>
-                  </div>
-                </div>
+               
                 {/* ========== END FIXED IMAGE SECTION ========== */}
 
                 <div className="flex gap-4 pt-4">
@@ -460,7 +475,7 @@ export default function ProductManagement() {
         {/* ==================== EDIT MODAL - ON TOP + RESPONSIVE ==================== */}
         {showEditModal && selectedProduct && hasRight('PRD_EDIT') && (
           <div 
-            className="fixed inset-0 bg-black/95 flex items-start justify-center z-[100] pt-12 p-4 sm:p-6" 
+            className="fixed inset-0 bg-black/95 flex items-start justify-center z-100 pt-12 p-4 sm:p-6" 
             onClick={() => {setShowEditModal(false); setSelectedProduct(null);}}
           >
             <div 
@@ -521,7 +536,7 @@ export default function ProductManagement() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs tracking-widest text-white/50 block mb-2">PRICE (₱)</label>
+                  <label className="text-xs tracking-widest text-white/50 block mb-2">PRICE ($)</label>
                   <input 
                     type="number" 
                     step="0.01" 
@@ -535,7 +550,7 @@ export default function ProductManagement() {
                 <div>
                   <label className="text-xs tracking-widest text-white/50 block mb-2">PRODUCT IMAGE</label>
                   <div className="flex items-center gap-4">
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <img 
                         id="editImagePreview" 
                         src={formData.image_url || 'https://via.placeholder.com/80x80/111/ddd?text=No+Image'} 
@@ -587,7 +602,7 @@ export default function ProductManagement() {
         {/* ==================== DELETE DIALOG - FIXED POSITION (UPPER PAGE) ==================== */}
         {showDeleteDialog && selectedProduct && hasRight('PRD_DEL') && (
           <div 
-            className="fixed inset-0 bg-black/95 flex items-start justify-center z-[100] pt-24 p-6" 
+            className="fixed inset-0 bg-black/95 flex items-start justify-center z-100 pt-24 p-6"
             onClick={() => {setShowDeleteDialog(false);setSelectedProduct(null);}}
           >
             <div 

@@ -32,7 +32,7 @@ export const UserRightsProvider = ({ children }) => {
         PRD_ADD: 1, PRD_EDIT: 1, PRD_DEL: 0, PRD_VIEW: 1, PRD_RESTORE: 1,
         PRICE_ADD: 1, PRICE_VIEW: 1,
         REP_VIEW: 1, REP_TOP: 0, ADM_USER: 1, AUDIT_VIEW: 1, RIGHTS_MGMT: 0,
-        REP_001: 1, REP_002: 1 
+        REP_001: 1, REP_002: 0 
       });
     } else {
       setRights({ 
@@ -80,6 +80,12 @@ export const UserRightsProvider = ({ children }) => {
             // Map the direct ID (e.g., REP_001, ADM_USER)
             if (row.right_id) {
               rightsMap[row.right_id] = val;
+              if (row.right_id === 'REP_TOP') {
+                rightsMap.REP_002 = val;
+              }
+              if (row.right_id === 'REP_002') {
+                rightsMap.REP_TOP = val;
+              }
             }
 
             // 3. Fallback for legacy module-based logic
@@ -90,6 +96,7 @@ export const UserRightsProvider = ({ children }) => {
             }
           });
 
+          rightsMap.REP_TOP = rightsMap.REP_002;
           rightsMap.PRICE_VIEW = rightsMap.PRD_VIEW || 0;
           
           setRights(rightsMap); 
