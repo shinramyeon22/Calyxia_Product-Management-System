@@ -18,6 +18,7 @@ body {
   box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
   border-color: #d4af37;
 }
+
 /* Page Transition Animation */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
@@ -40,4 +41,65 @@ body {
   transform: translate(-50%, -50%);
   max-height: 90vh;
   overflow-y: auto;
+}
+
+/* ============================================
+   GLOBAL RESPONSIVE IMPROVEMENTS
+   ============================================ */
+@media (max-width: 768px) {
+  /* Better mobile padding for main content areas */
+  .max-w-7xl {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Reduce large padding on mobile */
+  .py-16, .py-20 {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+  }
+
+  .px-8 {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Smaller headings on mobile */
+  .serif-font.text-6xl, 
+  .serif-font.text-7xl {
+    font-size: 2.75rem !important;
+    line-height: 1.05 !important;
+  }
+
+  h1.serif-font {
+    font-size: 2.5rem !important;
+  }
+
+  /* Touch-friendly buttons */
+  button, 
+  .gold-btn,
+  a[role="button"] {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  /* Tables: ensure horizontal scroll */
+  .overflow-x-auto table {
+    min-width: 640px;
+  }
+
+  /* Modals full width on mobile - FIXED ESCAPING */
+  .fixed.inset-0 .bg-\[\#0a0a0c\] {
+    max-width: 100% !important;
+    margin: 1rem !important;
+  }
+}
+
+/* Desktop refinements */
+@media (min-width: 1024px) {
+  .max-w-7xl {
+    max-width: 80rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
 }

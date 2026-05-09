@@ -15,7 +15,6 @@ export default function ProductDetails() {
   const [acquiring, setAcquiring] = useState(false);
   const [acquireSuccess, setAcquireSuccess] = useState(null);
   const [displayPrice, setDisplayPrice] = useState(null);
-
   const [loading, setLoading] = useState(true); 
   const { hasRight, loading: rightsLoading } = useRights();
   const canViewAudit = hasRight('AUDIT_VIEW');
@@ -61,7 +60,7 @@ export default function ProductDetails() {
       const result = await acquireProduct(product.prodcode);
       setStock(result.newStock);
       setAcquireSuccess({
-        message: `Successfully acquired! Paid ₱${Number(result.pricePaid).toLocaleString()}`,
+        message: `Successfully acquired! Paid $${Number(result.pricePaid).toLocaleString()}`,
         newStock: result.newStock
       });
       const { data: updated } = await supabase.from('product').select('*').eq('id', id).single();
@@ -98,11 +97,11 @@ export default function ProductDetails() {
     <div className="min-h-screen bg-[#050505] text-white pt-20">
       <Navbar />
       
-      <nav className="px-8 py-12">
+      <nav className="px-4 md:px-8 py-12">
         <Link to="/products" className="text-xs tracking-widest text-[#d4af37] hover:underline">← BACK TO PRODUCT</Link>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-8 grid md:grid-cols-2 gap-16">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 grid md:grid-cols-2 gap-16">
         <div className="bg-black border border-white/10 p-12">
           <img
             src={product.image_url?.trim() || 'https://via.placeholder.com/1200x800/111/ddd?text=Calyxia+Asset'}
@@ -115,7 +114,6 @@ export default function ProductDetails() {
           <div className="flex justify-between items-start">
             <span className="text-[#d4af37] text-xs tracking-widest">INSTITUTIONAL ASSET • ID: {product.id}</span>
             
-            {/* AUDIT STAMP - Only ADMIN + SUPERADMIN */}
             {canViewAudit && (
               <span className="text-white/30 text-[10px] tracking-tighter">
                 VAULT ENTRY: {new Date(product.created_at).toLocaleDateString()}
@@ -127,7 +125,7 @@ export default function ProductDetails() {
           
           <div className="mt-10 mb-8">
             <div className="text-5xl text-[#d4af37] mb-4">
-              ₱{Number((displayPrice ?? product.price) ?? 0).toLocaleString()}
+              ${Number((displayPrice ?? product.price) ?? 0).toLocaleString()}
             </div>
             
             <div>
@@ -192,38 +190,33 @@ export default function ProductDetails() {
       </div>
 
       {/* Price History Section */}
-      <div className="max-w-7xl mx-auto px-8 py-20 border-t border-white/10 mt-20">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-20 border-t border-white/10 mt-20">
         <div className="flex justify-between items-end mb-10">
           <div>
             <span className="text-xs tracking-[0.5em] text-white/50">VALUATION ARCHIVE</span>
             <h3 className="serif-font text-4xl italic">Price History</h3>
           </div>
           
-          {/* AUDIT ENABLED - Only ADMIN + SUPERADMIN */}
           {canViewAudit && <span className="text-[10px] text-white/40">AUDIT ENABLED</span>}
         </div>
 
         {priceHistory.length > 0 ? (
-          <div className="border border-white/10 overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="border border-white/10 overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
               <thead className="bg-black/60 border-b border-white/10">
                 <tr className="text-xs tracking-widest text-white/60">
-                  <th className="px-8 py-5 text-left">EFFECTIVE DATE</th>
-                  <th className="px-8 py-5 text-right">UNIT PRICE (₱)</th>
-                  
-                  {/* RECORDED COLUMN - Only ADMIN + SUPERADMIN */}
-                  {canViewAudit && <th className="px-8 py-5 text-right">RECORDED</th>}
+                  <th className="px-4 md:px-8 py-5 text-left">EFFECTIVE DATE</th>
+                  <th className="px-4 md:px-8 py-5 text-right">UNIT PRICE ($)</th>
+                  {canViewAudit && <th className="px-4 md:px-8 py-5 text-right">RECORDED</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
                 {priceHistory.map((entry, idx) => (
                   <tr key={idx} className="hover:bg-white/5">
-                    <td className="px-8 py-6 text-white/80">{new Date(entry.effdate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
-                    <td className="px-8 py-6 text-right font-mono text-[#d4af37]">₱{Number(entry.unitprice).toLocaleString()}</td>
-                    
-                    {/* RECORDED CELL - Only ADMIN + SUPERADMIN */}
+                    <td className="px-4 md:px-8 py-6 text-white/80">{new Date(entry.effdate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
+                    <td className="px-4 md:px-8 py-6 text-right font-mono text-[#d4af37]">${Number(entry.unitprice).toLocaleString()}</td>
                     {canViewAudit && (
-                      <td className="px-8 py-6 text-right text-xs text-white/40 font-mono">
+                      <td className="px-4 md:px-8 py-6 text-right text-xs text-white/40 font-mono">
                         {entry.created_at ? new Date(entry.created_at).toLocaleString() : '—'}
                       </td>
                     )}
@@ -236,7 +229,6 @@ export default function ProductDetails() {
           <div className="text-center py-12 border border-white/10 text-white/50 text-sm">No price history recorded for this asset yet.</div>
         )}
 
-        {/* AUDIT STAMP FOOTER - Only ADMIN + SUPERADMIN */}
         {canViewAudit && product && (
           <div className="mt-8 text-[10px] text-white/40 tracking-widest">
             AUDIT STAMP: Created {new Date(product.created_at).toLocaleString()} • Last Updated: {product.updated_at ? new Date(product.updated_at).toLocaleString() : 'N/A'}

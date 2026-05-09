@@ -1,14 +1,32 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const errorCode = params.get('error');
+    if (!errorCode) return;
+
+    let message = '';
+    if (errorCode === 'not_activated') {
+      message = 'Your account is INACTIVE and blocked from signing in. Contact your administrator to reactivate access.';
+    } else if (errorCode === 'auth_failed') {
+      message = 'Authentication failed. Please try signing in again or contact support.';
+    } else {
+      message = `Login failed: ${errorCode}`;
+    }
+
+    setTimeout(() => setError(message), 0);
+  }, [location.search]);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -45,6 +63,13 @@ export default function Login() {
     }
   };
 
+  // Custom styles to remove the yellow autofill background
+  const inputStyles = {
+    WebkitBoxShadow: '0 0 0 1000px #050505 inset',
+    WebkitTextFillColor: 'white',
+    transition: 'background-color 5000s ease-in-out 0s',
+  };
+
   return (
     <div className="min-h-screen w-full flex bg-[#050505] overflow-hidden">
       {/* Left Visual Panel */}
@@ -52,10 +77,10 @@ export default function Login() {
         <div className="absolute inset-0 opacity-70">
           <img 
             src="https://i.pinimg.com/736x/9a/5c/e2/9a5ce2ac05544aa4ae130cbde8632890.jpg" 
-            alt="Office with city view at dusk" 
+            alt="Office View" 
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent via-transparent via-black/40 via-black/70 to-black" />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/80" />
         </div>
         
         <div className="relative z-10 text-center px-12">
@@ -67,78 +92,81 @@ export default function Login() {
       {/* Right Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 bg-[#050505]">
         <div className="w-full max-w-md">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <h1 className="serif-font text-6xl italic tracking-tighter">Calyxia</h1>
-            <p className="text-white/50 mt-3 text-sm tracking-widest">MANAGEMENT ENTERPRISE</p>
+            <p className="text-white/50 mt-3 text-xs tracking-[0.3em]">MANAGEMENT ENTERPRISE</p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-950/50 border border-red-500/50 text-red-400 text-sm tracking-widest">
+            <div className="mb-6 p-4 bg-red-950/30 border border-red-500/50 text-red-400 text-xs tracking-widest rounded-xl">
               {error}
             </div>
           )}
 
           <form onSubmit={handleEmailLogin} className="space-y-6">
-            <input 
-              type="email" 
-              placeholder="EMAIL ADDRESS" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-transparent border-b border-white/20 pb-4 text-white placeholder:text-white/40 focus:border-[#d4af37] outline-none text-sm tracking-widest"
-              required
-            />
-            <div className="relative">
+            <div>
+              <label className="block text-[10px] tracking-[0.2em] text-white/40 mb-3 ml-1 uppercase">Email Address</label>
               <input 
-                type={showPassword ? "text" : "password"} 
-                placeholder="PASSWORD" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-transparent border-b border-white/20 pb-4 text-white placeholder:text-white/40 focus:border-[#d4af37] outline-none text-sm tracking-widest pr-10"
+                type="email" 
+                placeholder="you@example.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={inputStyles}
+                className="w-full bg-[#050505] border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-white/20 focus:border-[#d4af37]/50 focus:ring-1 focus:ring-[#d4af37]/50 outline-none text-sm transition-all"
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
-              >
-                {showPassword ? (
-                  // Open eye — password is visible, click to hide
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2 12 C6 6, 18 6, 22 12 C18 18, 6 18, 2 12 Z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                ) : (
-                  // Closed eye with lashes — password is hidden, click to show
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2 8 C6 14, 18 14, 22 8" />
-                    <line x1="12" y1="14" x2="12" y2="17" />
-                    <line x1="8"  y1="13" x2="7"  y2="16" />
-                    <line x1="16" y1="13" x2="17" y2="16" />
-                  </svg>
-                )}
-              </button>
             </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-3 px-1">
+                <label className="text-[10px] tracking-[0.2em] text-white/40 uppercase">Password</label>
+                <Link to="/forgot-password" size="xs" className="text-[10px] tracking-widest text-[#d4af37]/60 hover:text-[#d4af37]">Forgot password?</Link>
+              </div>
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="••••••••" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={inputStyles}
+                  className="w-full bg-[#050505] border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-white/20 focus:border-[#d4af37]/50 focus:ring-1 focus:ring-[#d4af37]/50 outline-none text-sm transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/60 transition-colors"
+                >
+                  {showPassword ? (
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  ) : (
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9.88 9.88l-3.29-3.29m14.83 12.83l-3.29-3.29M12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61m-7.39-7.39a3 3 0 1 1 4.24 4.24"/></svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
             <button 
               type="submit"
               disabled={loading}
-              className="w-full bg-[#d4af37] text-black py-5 text-xs tracking-[0.125em] font-medium hover:bg-white transition disabled:opacity-70"
+              className="w-full bg-[#d4af37] text-black py-4 rounded-2xl text-xs tracking-[0.2em] font-bold hover:bg-[#c4a030] active:scale-[0.98] transition-all disabled:opacity-70 mt-4 shadow-lg shadow-[#d4af37]/10"
             >
               {loading ? "SIGNING IN..." : "SIGN IN"}
             </button>
           </form>
 
-          <div className="my-10 flex items-center gap-4">
-            <div className="flex-1 h-px bg-white/10"></div>
-            <span className="text-xs text-white/40 tracking-widest">OR</span>
-            <div className="flex-1 h-px bg-white/10"></div>
+          <div className="my-8 flex items-center gap-4">
+            <div className="flex-1 h-[1px] bg-white/5"></div>
+            <span className="text-[10px] text-white/20 tracking-[0.3em]">OR</span>
+            <div className="flex-1 h-[1px] bg-white/5"></div>
           </div>
 
           <button
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full bg-white text-black py-5 rounded-sm flex items-center justify-center gap-3 text-sm tracking-widest hover:bg-zinc-200 transition disabled:opacity-70"
+            className="w-full bg-white text-black py-4 rounded-2xl flex items-center justify-center gap-3 text-xs font-bold tracking-widest hover:bg-zinc-200 active:scale-[0.98] transition-all disabled:opacity-70"
           >
-            <svg className="w-6 h-6" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -147,9 +175,9 @@ export default function Login() {
             Continue with Google
           </button>
 
-          <p className="text-center text-xs text-white/50 mt-12">
-            Don't have access?{' '}
-            <Link to="/register" className="text-[#d4af37] hover:underline">Register Identity</Link>
+          <p className="text-center text-[10px] text-white/30 mt-10 tracking-widest">
+            No account?{' '}
+            <Link to="/register" className="text-[#d4af37] font-bold hover:text-white transition-colors">Sign up</Link>
           </p>
         </div>
       </div>

@@ -2,7 +2,7 @@ import React from 'react';
 
 const UserManagementPage = () => {
   // Assuming 'users' is the state where you store the list of users from Supabase
-  const [users, setUsers] = React.useState([]); 
+  const [users] = React.useState([]); 
 
   const handleEdit = (user) => console.log("Editing", user);
   const handleDelete = (id) => console.log("Deleting", id);

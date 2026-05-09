@@ -27,6 +27,47 @@ export const getProducts = async (userType = 'USER') => {
   }
 };
 
+/**
+ * Lighter product payload for admin tables.
+ * Intentionally excludes `image_url` to avoid slow loading when images are stored as large base64 strings.
+ */
+export const getProductsForManagement = async (userType = 'USER') => {
+  try {
+    let query = supabase
+      .from('product')
+      .select('prodcode, description, unit, stock, price, record_status, stamp')
+      .order('prodcode', { ascending: true });
+
+    if (userType.toUpperCase() === 'USER') {
+      query = query.eq('record_status', 'A');
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching products for management:', error);
+    throw error;
+  }
+};
+
+export const getProductByProdcode = async (prodcode) => {
+  if (!prodcode) return null;
+  try {
+    const { data, error } = await supabase
+      .from('product')
+      .select('prodcode, description, unit, stock, price, record_status, stamp, image_url')
+      .eq('prodcode', prodcode)
+      .single();
+
+    if (error) throw error;
+    return data || null;
+  } catch (error) {
+    console.error('Error fetching product by prodcode:', error);
+    throw error;
+  }
+};
+
 /** PostgreSQL duplicate key → readable message */
 function throwIfDuplicateProductKey(pgError, prodcodeHint = '') {
   if (!pgError || pgError.code !== '23505') return false;
@@ -74,7 +115,7 @@ export const isProdcodeAvailable = async (prodcode) => {
   return data == null;
 };
 
-export const addProduct = async (productData, userId) => {
+export const addProduct = async (productData) => {
   try {
     const stamp = new Date().toISOString();
     const prodcode = productData.prodcode;
@@ -130,8 +171,8 @@ export const addProduct = async (productData, userId) => {
           console.warn('Price history insert blocked by RLS during product create:', insertErr);
           return data;
         }
-        await supabase.from('product').delete().eq('prodcode', prodcode);
-        throw insertErr;
+        console.warn('Price history insert failed; asset was created without price history:', insertErr);
+        return data;
       }
     }
 
@@ -143,7 +184,7 @@ export const addProduct = async (productData, userId) => {
   }
 };
 
-export const updateProduct = async (prodcode, productData, userId) => {
+export const updateProduct = async (prodcode, productData) => {
   try {
     const stamp = new Date().toISOString();
     const imageUrl = typeof productData.image_url === 'string' ? productData.image_url.trim() : '';
@@ -168,7 +209,7 @@ export const updateProduct = async (prodcode, productData, userId) => {
   }
 };
 
-export const softDeleteProduct = async (prodcode, userId) => {
+export const softDeleteProduct = async (prodcode) => {
   try {
     const stamp = new Date().toISOString();
 
@@ -185,7 +226,7 @@ export const softDeleteProduct = async (prodcode, userId) => {
   }
 };
 
-export const recoverProduct = async (prodcode, userId) => {
+export const recoverProduct = async (prodcode) => {
   try {
     const stamp = new Date().toISOString();
 
@@ -219,7 +260,7 @@ export const getPriceHistory = async (prodcode) => {
   }
 };
 
-export const addPriceEntry = async (prodcode, effDate, unitPrice, userId) => {
+export const addPriceEntry = async (prodcode, effDate, unitPrice) => {
   try {
     const stamp = new Date().toISOString();
     
