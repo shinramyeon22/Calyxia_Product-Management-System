@@ -9,69 +9,74 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (session) => {
-    if (!session?.user?.id) return;
+  // Consolidated fetch function
+  const fetchUserProfile = useCallback(async (authUser) => {
+    if (!authUser?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data, error } = await supabase
         .from('app_user')
-        .select('user_type, record_status')
-        .eq('id', session.user.id)
+        .select('*')
+        .eq('id', authUser.id)
         .single();
 
       if (error) {
         console.warn("No profile found, using default USER:", error.message);
+        // Fallback if the user exists in Auth but not in app_user table
         setUser({ 
-          ...session.user, 
+          ...authUser, 
           user_type: 'USER',
           record_status: 'ACTIVE'
         });
       } else {
-        setUser({ ...session.user, ...data });
+        setUser({ ...authUser, ...data });
       }
     } catch (err) {
       console.error("Profile fetch error:", err);
-      setUser({ ...session.user, user_type: 'USER' });
+      setUser({ ...authUser, user_type: 'USER' });
+    } finally {
+      setLoading(false); // CRITICAL: This stops the "Verifying Access" loop
     }
   }, []);
 
   useEffect(() => {
-  // 1. Instant check: Use cached session/type while waiting for Supabase
-  const cachedType = localStorage.getItem('user_type');
-  
-  supabase.auth.getSession().then(({ data: { session: initSession } }) => {
-    if (initSession) {
-      setSession(initSession);
-      // Optimistically set the user type from cache to bypass "Loading" screens
-      setUser({ ...initSession.user, user_type: cachedType || 'USER' });
-      fetchProfile(initSession);
-    }
-    setLoading(false);
-  });
+    // 1. Get initial session on mount
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      setSession(initialSession);
+      if (initialSession) {
+        fetchUserProfile(initialSession.user);
+      } else {
+        setLoading(false);
+      }
+    });
 
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, currSession) => {
-    setSession(currSession);
-    if (currSession) {
-      await fetchProfile(currSession);
-    } else {
-      setUser(null);
-      localStorage.removeItem('user_type'); // Clean up on logout
-    }
-    setLoading(false);
-  });
+    // 2. Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
+      setSession(currentSession);
+      if (currentSession) {
+        fetchUserProfile(currentSession.user);
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    });
 
-  return () => subscription.unsubscribe();
-}, [fetchProfile]);
+    return () => {
+      if (subscription) subscription.unsubscribe();
+    };
+  }, [fetchUserProfile]);
 
   const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) console.error("Error signing out:", error.message);
-  
-  // Manually reset state so the UI reacts immediately
-  setUser(null);
-  setSession(null);
-  localStorage.removeItem('user_type'); 
-};
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error("Error signing out:", error.message);
+    
+    setUser(null);
+    setSession(null);
+    localStorage.removeItem('user_type'); 
+  };
 
   return (
     <AuthContext.Provider value={{ session, user, loading, signOut }}>
@@ -79,6 +84,5 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
 
 export const useAuth = () => useContext(AuthContext);

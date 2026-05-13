@@ -12,20 +12,17 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const { user: currentAdmin } = useAuth();
   const { isSidebarOpen } = useSidebar();
-  
-  // Use a ref to track if we have already performed the initial fetch
   const hasFetched = useRef(false);
 
   const normalizeRecordStatus = (s) => {
     const v = String(s || '').toUpperCase();
-    return v === 'A' ? 'ACTIVE' : 'INACTIVE';
+    return (v === 'A' || v === 'ACTIVE') ? 'ACTIVE' : 'INACTIVE';
   };
 
   const fetchUsers = useCallback(async () => {
-    // Only set loading if it's not already loading to prevent unnecessary renders
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('profiles').select('*');
+      const { data, error } = await supabase.from('app_user').select('*');
       if (error) throw error;
       setUsers(data || []);
     } catch (err) {
@@ -36,21 +33,56 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    // By checking a ref, we ensure the logic only runs once on mount
-    // and satisfies the linting rule by making the execution conditional
     if (!hasFetched.current) {
       fetchUsers();
       hasFetched.current = true;
     }
   }, [fetchUsers]);
 
-  const filteredUsers = users.filter((u) => {
-    const query = searchTerm.toLowerCase();
-    const rowStatus = normalizeRecordStatus(u.record_status);
-    const matchesSearch = u.email?.toLowerCase().includes(query);
-    const matchesStatus = statusFilter === 'all' || rowStatus.toLowerCase() === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // NEW: Updated Toggle Status Function (matches button call)
+  const toggleUserStatus = async (userId, currentStatus) => {
+    const isCurrentlyActive = normalizeRecordStatus(currentStatus) === 'ACTIVE';
+    const newStatus = isCurrentlyActive ? 'INACTIVE' : 'ACTIVE';
+
+    try {
+      const { error } = await supabase
+        .from('app_user')
+        .update({ record_status: newStatus })
+        .eq('id', userId);
+
+      if (error) throw error;
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, record_status: newStatus } : u));
+    } catch (err) {
+      console.error("Update failed:", err.message);
+      alert("Error: Check your Supabase RLS Update policies.");
+    }
+  };
+
+  // NEW: Simple Edit Function
+  const handleEdit = async (userId) => {
+    const newRole = prompt("Enter new Authorization (SUPERADMIN, ADMIN, USER):");
+    if (!newRole) return;
+    
+    const { error } = await supabase
+      .from('app_user')
+      .update({ user_type: newRole.toUpperCase() })
+      .eq('id', userId);
+
+    if (!error) {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, user_type: newRole.toUpperCase() } : u));
+    }
+  };
+
+  // NEW: Filter + A-Z Sorting Logic
+  const filteredUsers = users
+    .filter((u) => {
+      const query = searchTerm.toLowerCase();
+      const rowStatus = normalizeRecordStatus(u.record_status).toLowerCase();
+      const matchesSearch = (u.email || '').toLowerCase().includes(query);
+      const matchesStatus = statusFilter === 'all' || rowStatus === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => (a.email || "").localeCompare(b.email || ""));
 
   return (
     <div className="min-h-screen bg-[#050505] text-white pt-20">
@@ -58,8 +90,6 @@ export default function AdminDashboard() {
       <div className="flex">
         <Sidebar />
         <div className={`flex-1 transition-all duration-300 p-8 md:p-12 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
-          
-          {/* Header Section */}
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
             <div>
               <div className="text-[#d4af37] text-xs tracking-[0.5em] mb-2 uppercase">Administration</div>
@@ -68,19 +98,17 @@ export default function AdminDashboard() {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative">
-                <input 
-                  type="text"
-                  placeholder="SEARCH IDENTITIES..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="bg-transparent border-b border-white/20 pb-2 text-sm tracking-widest outline-none focus:border-[#d4af37] transition-colors w-64 placeholder:text-white/20"
-                />
-              </div>
+              <input 
+                type="text"
+                placeholder="SEARCH IDENTITIES..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-transparent border-b border-white/20 pb-2 text-sm tracking-widest outline-none focus:border-[#d4af37] transition-colors w-64 placeholder:text-white/20"
+              />
               <select 
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-transparent border-b border-white/20 pb-2 text-xs tracking-[0.2em] outline-none cursor-pointer uppercase"
+                className="bg-transparent border-b border-white/20 pb-2 text-xs tracking-[0.2em] outline-none cursor-pointer uppercase text-white"
               >
                 <option value="active" className="bg-[#050505]">Active Only</option>
                 <option value="inactive" className="bg-[#050505]">Inactive Only</option>
@@ -89,11 +117,10 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Table Container */}
           <div className="border border-white/10 rounded-3xl overflow-hidden bg-black/40 min-h-[400px] relative">
             {loading ? (
               <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-10">
-                <div className="text-[#d4af37] text-xs tracking-[0.5em] animate-pulse uppercase">Synchronizing Identities...</div>
+                <div className="text-[#d4af37] text-xs tracking-[0.5em] animate-pulse uppercase">Synchronizing...</div>
               </div>
             ) : (
               <table className="w-full text-left border-collapse">
@@ -131,18 +158,24 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-8 py-6">
                         <div className="flex items-center justify-end gap-3">
-                          <button className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-[#d4af37]">
+                          <button 
+                            onClick={() => handleEdit(u.id)}
+                            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-[#d4af37]"
+                          >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                               <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
                             </svg>
                           </button>
                           {u.user_type !== 'SUPERADMIN' && u.id !== currentAdmin?.id && (
-                            <button className={`px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest border transition-all ${
-                              normalizeRecordStatus(u.record_status) === 'ACTIVE' 
-                              ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' 
-                              : 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10'
-                            }`}>
-                              {normalizeRecordStatus(u.record_status) === 'ACTIVE' ? 'REVOKE' : 'GRANT'}
+                            <button 
+                              onClick={() => toggleUserStatus(u.id, u.record_status)}
+                              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest border transition-all ${
+                                normalizeRecordStatus(u.record_status) === 'ACTIVE' 
+                                ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' 
+                                : 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10'
+                              }`}
+                            >
+                              {normalizeRecordStatus(u.record_status) === 'ACTIVE' ? 'SUSPEND ' : 'GRANT'}
                             </button>
                           )}
                         </div>
@@ -155,10 +188,6 @@ export default function AdminDashboard() {
             {!loading && filteredUsers.length === 0 && (
               <div className="py-20 text-center text-white/20 text-xs tracking-[0.5em]">NO IDENTITIES FOUND</div>
             )}
-          </div>
-
-          <div className="mt-8 flex items-center gap-4 text-[10px] text-white/30 tracking-[0.2em] uppercase">
-            <span className="text-[#d4af37]">Superadmin</span>: full access • <span>Admin</span>: inventory & users • <span>User</span>: read-only
           </div>
         </div>
       </div>
