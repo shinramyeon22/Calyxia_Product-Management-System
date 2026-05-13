@@ -75,48 +75,55 @@ const getLinkStyle = (path, queryTab = null) => {
                 </div>
                 {openSections.inventory && (
                   <nav className="space-y-1">
+                    
+                {isAdmin && (
+                  
 <Link 
-        to="/products" 
-        className={getLinkStyle('/products')} 
+        to="/admin/products"
+        className={getLinkStyle('/admin/products')}
         onClick={handleLinkClick}
       >
-        Products
-      </Link>                    
-<Link 
-        to="/products?tab=listing" 
-        className={getLinkStyle('/products', 'listing')} 
-        onClick={handleLinkClick}
-      >
-        Product Listing
+        Product
       </Link>
-                          {isAdmin && (
+                )}
+                
         <Link 
-          to="/admin/products" 
-          className={getLinkStyle('/admin/products')} 
-          onClick={handleLinkClick}
+        to="/products?tab=listing"
+        className={getLinkStyle('/products','listing')}
+        onClick={handleLinkClick}
         >
-          Manage Inventory
+          Product Listing
         </Link>
-                    )}
                   </nav>
                 )}
               </div>
 
-              {/* REPORTS - Now using hasRight */}
-              {(hasRight('REP_001') || hasRight('REP_002')) && (
-                <div>
-                  <div onClick={() => toggleSection('reports')} className="flex justify-between text-xs tracking-[0.5em] text-white/50 mb-4 uppercase cursor-pointer hover:text-white">
-                    <span>REPORTS</span>
-                    <span>{openSections.reports ? '−' : '+'}</span>
-                  </div>
-                  {openSections.reports && (
-                    <nav className="space-y-1">
-                      {hasRight('REP_001') && <Link to="/reports" className={getLinkStyle('/reports')} onClick={handleLinkClick}>Sales Report</Link>}
-                      {hasRight('REP_002') && <Link to="/reports" className={getLinkStyle('/reports')} onClick={handleLinkClick}>Product Listing Report</Link>}
-                    </nav>
-                  )}
-                </div>
-              )}
+{/* REPORTS - Completely hidden unless user is SUPERADMIN */}
+{userType === 'SUPERADMIN' && (hasRight('REP_001') || hasRight('REP_002')) && (
+  <div>
+    <div 
+      onClick={() => toggleSection('reports')} 
+      className="flex justify-between text-xs tracking-[0.5em] text-white/50 mb-4 uppercase cursor-pointer hover:text-white"
+    >
+      <span>REPORTS</span>
+      <span>{openSections.reports ? '−' : '+'}</span>
+    </div>
+    
+    {openSections.reports && (
+      <nav className="space-y-1">
+        {hasRight('REP_001') && (
+          <Link 
+            to="/reports" 
+            className={getLinkStyle('/reports')} 
+            onClick={handleLinkClick}
+          >
+            Top Selling Report
+          </Link>
+        )}
+      </nav>
+    )}
+  </div>
+)}
             </>
           )}
         </div>
