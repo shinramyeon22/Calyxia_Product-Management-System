@@ -89,28 +89,26 @@ export default function Sidebar({ isOpen = false, onClose = () => {}, isCollapse
               )}
 
               {/* INVENTORY SECTION */}
-              <div>
-                <div 
-                  onClick={() => toggleSection('inventory')} 
-                  className="flex justify-between text-[10px] tracking-[0.5em] text-white/40 mb-4 uppercase cursor-pointer hover:text-white transition-colors"
-                >
-                  <span>INVENTORY</span>
-                  <span>{openSections.inventory ? '−' : '+'}</span>
-                </div>
-                
-                {openSections.inventory && (
-                  <nav className="space-y-1">
-                    <Link to="/products" className={getLinkStyle('/products')} onClick={handleLinkClick}>Product</Link>
-                    <Link 
-                      to={{ pathname: "/products", search: "?tab=listing" }}
-                      className={getLinkStyle('/products', 'listing')} 
-                      onClick={handleLinkClick}
-                    >
-                      Product Listing
-                    </Link>
-                  </nav>
-                )}
-              </div>
+<div className="space-y-2">
+  <p className="text-white/30 text-[10px] tracking-[0.2em] uppercase px-4 mb-4">Inventory</p>
+  
+  {/* PRODUCT PAGE - Now visible to everyone */}
+  {/* Visible to everyone */}
+<Link 
+  to="/products" 
+  className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors"
+>
+  <span className="text-sm tracking-widest uppercase">Product</span>
+</Link>
+
+  {/* PRODUCT LISTING - Also accessible to users now */}
+<Link 
+  to="/products?tab=listing" 
+  className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors"
+>
+  <span className="text-sm tracking-widest uppercase">Product Listing</span>
+</Link>
+</div>
 
               {/* REPORTS SECTION */}
               {userType === 'SUPERADMIN' && (hasRight('REP_001') || hasRight('REP_002')) && (
