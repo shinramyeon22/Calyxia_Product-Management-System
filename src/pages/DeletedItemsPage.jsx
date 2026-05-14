@@ -81,85 +81,102 @@ const { isSidebarOpen } = useSidebar();
   }
 
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-[#050505] text-white pt-20">
-        <Navbar />
-        <div className="flex">
-          <Sidebar />
-        <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
-            <div className="flex flex-col gap-6 mb-12">
-              <div>
-                <span className="block text-[#d4af37] text-xs tracking-[0.5em]">ARCHIVE</span>
-                <h1 className="serif-font text-6xl italic tracking-tighter">Deleted Items</h1>
-                <p className="text-white/60 max-w-2xl mt-3">Archived products are soft-deleted and visible only to ADMIN and SUPERADMIN. Recover items to restore them for all users.</p>
-              </div>
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex-1 min-w-0">
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search deleted products..."
-                    className="w-full bg-transparent border border-white/10 px-6 py-4 text-sm tracking-widest outline-none focus:border-[#d4af37] placeholder:text-white/40"
-                  />
-                </div>
-                <button 
-                  onClick={fetchDeletedProducts} 
-                  className="rounded-full border border-[#d4af37] px-8 py-4 text-xs tracking-widest text-[#d4af37] hover:bg-[#d4af37] hover:text-black transition"
-                >
-                  REFRESH
-                </button>
-              </div>
+  <ErrorBoundary>
+    {/* Removed pt-20 from outer div to let inner padding handle the top spacing */}
+    <div className="min-h-screen bg-[#050505] text-white">
+      <Navbar />
+      <div className="flex">
+        <Sidebar />
+        
+        {/* Unified Layout Container: Matches Product Page Spacing */}
+        <div className={`flex-1 transition-all duration-300 p-8 pt-28 pb-12 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
+          
+          {/* Header Section: Matches Product Page Font Sizes */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-6">
+            <div>
+              {/* Added serif-font and matched the text-6xl md:text-7xl size */}
+              <h1 className="serif-font text-6xl md:text-7xl italic tracking-tighter">
+                Deleted Items
+              </h1>
+              <p className="text-white/60 mt-2 max-w-2xl">
+                Archived products are soft-deleted and visible only to ADMIN and SUPERADMIN. Recover items to restore them for all users.
+              </p>
             </div>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={fetchDeletedProducts} 
+                className="border border-white/20 hover:bg-white/5 text-xs tracking-[0.15em] px-6 py-3 rounded transition-all"
+              >
+                REFRESH
+              </button>
+            </div>
+          </div>
 
-            {error && (
-              <div className="bg-red-900/20 border border-red-500/50 p-6 mb-10 text-red-400">
-                {error}
-              </div>
-            )}
+          {/* Search Bar: Matched Product Page Styling */}
+          <div className="flex flex-col md:flex-row gap-6 mb-8 items-start md:items-center">
+            <div className="relative flex-1 max-w-md w-full">
+              <input 
+                type="text" 
+                placeholder="Search deleted products..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                className="w-full bg-black border border-white/10 pl-12 py-4 text-sm focus:border-[#d4af37] outline-none rounded-2xl" 
+              />
+              <div className="absolute left-5 top-4 text-white/40">🔍</div>
+            </div>
+          </div>
 
-            <div className="border border-white/10 overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-black/50 border-b border-white/10">
-                  <tr className="text-xs tracking-widest text-white/60">
-                    <th className="px-8 py-6">ID</th>
-                    <th className="px-8 py-6">DESCRIPTION</th>
-                    <th className="px-8 py-6">STAMP</th>
-                    <th className="px-8 py-6 text-right">ACTIONS</th>
+          {error && (
+            <div className="bg-red-900/20 border border-red-500/50 p-6 mb-10 text-red-400 rounded-2xl">
+              {error}
+            </div>
+          )}
+
+          {/* Table Container: Matched Product Page "Vault" style */}
+          <div className="border border-white/10 overflow-hidden rounded-2xl shadow-2xl bg-black/40">
+            <table className="w-full text-sm">
+              <thead>
+                {/* Matched the Product page table header style */}
+                <tr className="bg-black/70 border-b border-white/10 text-[10px] tracking-[0.2em] text-white/60 uppercase">
+                  <th className="px-8 py-5 text-left">ID</th>
+                  <th className="px-8 py-5 text-left">Description</th>
+                  <th className="px-8 py-5 text-left">Stamp</th>
+                  <th className="px-8 py-5 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {filteredProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="px-8 py-16 text-center text-white/50">
+                      No deleted items found.
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-white/10">
-                  {filteredProducts.length === 0 ? (
-                    <tr>
-                      <td colSpan="4" className="px-8 py-16 text-center text-white/50">
-                        No deleted items found.
+                ) : (
+                  filteredProducts.map(p => (
+                    <tr key={p.prodcode} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-8 py-6 font-mono text-[#d4af37]">{p.prodcode}</td>
+                      <td className="px-8 py-6 text-white/80">{p.description || p.name || '—'}</td>
+                      <td className="px-8 py-6 text-white/40 text-xs">
+                        {p.stamp ? new Date(p.stamp).toLocaleString() : '—'}
+                      </td>
+                      <td className="px-8 py-6 text-center">
+                        <button 
+                          onClick={() => handleRecover(p.prodcode)} 
+                          className="px-3 py-1.5 border border-emerald-500/50 text-emerald-400 text-[10px] rounded hover:bg-emerald-500 hover:text-black transition"
+                        >
+                          RECOVER
+                        </button>
                       </td>
                     </tr>
-                  ) : (
-                    filteredProducts.map(p => (
-                      <tr key={p.prodcode} className="hover:bg-white/5 transition">
-                        <td className="px-8 py-8 font-mono text-sm">{p.prodcode}</td>
-                        <td className="px-8 py-8">{p.description || p.name || '—'}</td>
-                        <td className="px-8 py-8 text-xs text-white/50">
-                          {p.stamp ? new Date(p.stamp).toLocaleString() : '—'}
-                        </td>
-                        <td className="px-8 py-8 text-right">
-                          <button 
-                            onClick={() => handleRecover(p.prodcode)} 
-                            className="text-emerald-400 hover:text-emerald-300 text-sm tracking-widest"
-                          >
-                            RECOVER
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
-    </ErrorBoundary>
-  );
+    </div>
+  </ErrorBoundary>
+);
 }
