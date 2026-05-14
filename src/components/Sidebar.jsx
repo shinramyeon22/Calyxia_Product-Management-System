@@ -67,36 +67,27 @@ const getLinkStyle = (path, queryTab = null) => {
                 </div>
               )}
 
-              {/* INVENTORY */}
-              <div>
-                <div onClick={() => toggleSection('inventory')} className="flex justify-between text-xs tracking-[0.5em] text-white/50 mb-4 uppercase cursor-pointer hover:text-white">
-                  <span>INVENTORY</span>
-                  <span>{openSections.inventory ? '−' : '+'}</span>
-                </div>
-                {openSections.inventory && (
-                  <nav className="space-y-1">
-                    
-                {isAdmin && (
-                  
+              {/* INVENTORY SECTION */}
+<div className="space-y-2">
+  <p className="text-white/30 text-[10px] tracking-[0.2em] uppercase px-4 mb-4">Inventory</p>
+  
+  {/* PRODUCT PAGE - Now visible to everyone */}
+  {/* Visible to everyone */}
 <Link 
-        to="/admin/products"
-        className={getLinkStyle('/admin/products')}
-        onClick={handleLinkClick}
-      >
-        Product
-      </Link>
-                )}
-                
-        <Link 
-        to="/products?tab=listing"
-        className={getLinkStyle('/products','listing')}
-        onClick={handleLinkClick}
-        >
-          Product Listing
-        </Link>
-                  </nav>
-                )}
-              </div>
+  to="/products" 
+  className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors"
+>
+  <span className="text-sm tracking-widest uppercase">Product</span>
+</Link>
+
+  {/* PRODUCT LISTING - Also accessible to users now */}
+<Link 
+  to="/products?tab=listing" 
+  className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors"
+>
+  <span className="text-sm tracking-widest uppercase">Product Listing</span>
+</Link>
+</div>
 
 {/* REPORTS - Completely hidden unless user is SUPERADMIN */}
 {userType === 'SUPERADMIN' && (hasRight('REP_001') || hasRight('REP_002')) && (
