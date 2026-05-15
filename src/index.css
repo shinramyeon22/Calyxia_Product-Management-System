@@ -43,6 +43,46 @@ body {
   overflow-y: auto;
 }
 
+/* Modal Overlay Styling - Ensure proper layering with header visible */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 5, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Scrollable Modal Container - Keeps title and close button fixed */
+.modal-container {
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  background: #0a0a0c;
+  z-index: 10;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Prevent scroll on body when modal is open */
+body.modal-open {
+  overflow: hidden;
+}
+
 /* ============================================
    GLOBAL RESPONSIVE IMPROVEMENTS
    ============================================ */
