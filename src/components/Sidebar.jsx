@@ -89,26 +89,26 @@ export default function Sidebar({ isOpen = false, onClose = () => {}, isCollapse
               )}
 
               {/* INVENTORY SECTION */}
-<div className="space-y-2">
-  <p className="text-white/30 text-[10px] tracking-[0.2em] uppercase px-4 mb-4">Inventory</p>
-  
-  {/* PRODUCT PAGE - Now visible to everyone */}
-  {/* Visible to everyone */}
-<Link 
-  to="/products" 
-  className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors"
->
-  <span className="text-sm tracking-widest uppercase">Product</span>
-</Link>
+              <div className="space-y-2">
+                <p className="text-white/30 text-[10px] tracking-[0.2em] uppercase px-4 mb-4">Inventory</p>
 
-  {/* PRODUCT LISTING - Also accessible to users now */}
-<Link 
-  to="/products?tab=listing" 
-  className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors"
->
-  <span className="text-sm tracking-widest uppercase">Product Listing</span>
-</Link>
-</div>
+              {/* PRODUCT PAGE - Now visible to everyone */}
+              <Link 
+                   to="/admin/products" 
+                    className={getLinkStyle('/admin/products')} 
+                    onClick={handleLinkClick}
+            >
+                Product
+              </Link>
+
+              {/* PRODUCT LISTING - Also accessible to users now */}
+              <Link 
+                to="/products?tab=listing" 
+                className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors"
+              >
+               <span className="text-sm tracking-widest uppercase">Product Listing</span>
+              </Link>
+              </div>
 
               {/* REPORTS SECTION */}
               {userType === 'SUPERADMIN' && (hasRight('REP_001') || hasRight('REP_002')) && (
