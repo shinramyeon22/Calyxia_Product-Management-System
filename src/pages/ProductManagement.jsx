@@ -24,6 +24,7 @@ export default function ProductManagement() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const anyModalOpen = showAddModal || showEditModal || showDeleteDialog;
 
   const [formData, setFormData] = useState({ prodcode: '', description: '', unit: 'ea', price: '', stock: 0, image_url: '' });
   const [priceForm, setPriceForm] = useState({ effDate: '', unitPrice: '' });
@@ -59,8 +60,7 @@ export default function ProductManagement() {
 
   // ==================== BODY SCROLL LOCK FOR FIXED MODALS ====================
   useEffect(() => {
-    const isAnyModalOpen = showEditModal || showDeleteDialog || showAddModal;
-    if (isAnyModalOpen) {
+    if (anyModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'visible';
@@ -68,7 +68,7 @@ export default function ProductManagement() {
     return () => {
       document.body.style.overflow = 'visible';
     };
-  }, [showEditModal, showDeleteDialog, showAddModal]);
+  }, [anyModalOpen]);
 
   const toggleRow = useCallback(async (prodcode) => {
     setExpandedRows(prev => {
@@ -219,13 +219,14 @@ export default function ProductManagement() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-[#050505] text-white pt-20">
-        <Navbar />
-<div className="flex">
-  <Sidebar />
-<div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
+        <div className={`transition-opacity duration-300 ${anyModalOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+          <Navbar />
+          <div className="flex">
+            <Sidebar />
+            <div className={`flex-1 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
               <div className="flex flex-col gap-8 mb-8">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-              <div>
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                  <div>
                 <div className="flex flex-wrap items-center gap-3 mb-4">
                   <div>
                     <span className="block text-[#d4af37] text-xs tracking-[0.5em] uppercase">Products</span>
@@ -285,7 +286,6 @@ export default function ProductManagement() {
                 <option value="lowStock">LOW STOCK (0-3)</option>
               </select>
             </div>
-          </div>
 
             {error && <div className="bg-red-900/20 border border-red-500/50 p-6 mb-10 text-red-400">{error}</div>}
 
@@ -420,6 +420,8 @@ export default function ProductManagement() {
             </div>
           </div>
         </div>
+        </div>
+        </div>
 
         {/* ==================== MODALS ==================== */}
         
@@ -479,7 +481,7 @@ export default function ProductManagement() {
             onClick={() => {setShowEditModal(false); setSelectedProduct(null);}}
           >
             <div 
-              className="bg-[#0a0a0c] border border-white/10 w-full max-w-md sm:max-w-lg p-6 sm:p-10 rounded-none relative shadow-2xl" 
+              className="bg-[#0a0a0c] border border-white/10 w-full max-w-md sm:max-w-lg p-6 sm:p-10 rounded-none relative shadow-2xl max-h-[90vh] overflow-y-auto" 
               onClick={e => e.stopPropagation()}
             >
               <button 
