@@ -219,7 +219,7 @@ export default function ProductManagement() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-[#050505] text-white pt-20">
-        <div className={`transition-opacity duration-300 ${anyModalOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+        <div className={`transition-opacity duration-300 ${anyModalOpen ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
           <Navbar />
           <div className="flex">
             <Sidebar />
@@ -477,7 +477,7 @@ export default function ProductManagement() {
         {/* ==================== EDIT MODAL - ON TOP + RESPONSIVE ==================== */}
         {showEditModal && selectedProduct && hasRight('PRD_EDIT') && (
           <div 
-            className="fixed inset-0 bg-black/95 flex items-start justify-center z-100 pt-12 p-4 sm:p-6" 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center z-100 pt-12 p-4 sm:p-6"
             onClick={() => {setShowEditModal(false); setSelectedProduct(null);}}
           >
             <div 
@@ -604,7 +604,7 @@ export default function ProductManagement() {
         {/* ==================== DELETE DIALOG - FIXED POSITION (UPPER PAGE) ==================== */}
         {showDeleteDialog && selectedProduct && hasRight('PRD_DEL') && (
           <div 
-            className="fixed inset-0 bg-black/95 flex items-start justify-center z-100 pt-24 p-6"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center z-100 pt-24 p-6"
             onClick={() => {setShowDeleteDialog(false);setSelectedProduct(null);}}
           >
             <div 
