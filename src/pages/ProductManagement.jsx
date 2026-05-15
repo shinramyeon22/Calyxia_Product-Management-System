@@ -88,13 +88,13 @@ export default function ProductManagement() {
   }, [priceHistories]);
 
   const openAddModal = () => {
-    if (!hasRight('PRD_ADD')) return;
+    if (!hasRight('PRD_ADD') && userType !== 'USER') return;
     setFormData({ prodcode: '', description: '', unit: 'ea', price: '', stock: 0, image_url: '' });
     setShowAddModal(true);
   };
 
   const openEditModal = async (p) => {
-    if (!hasRight('PRD_EDIT')) return;
+    if (!hasRight('PRD_EDIT') && userType !== 'USER') return;
     try {
       const full = await getProductByProdcode(p.prodcode);
       const next = full || p;
@@ -242,7 +242,7 @@ export default function ProductManagement() {
               </div>
 
               <div className="flex flex-wrap gap-4 items-center">
-                {hasRight('PRD_ADD') && (
+                {(hasRight('PRD_ADD') || userType === 'USER') && (
                   <button onClick={openAddModal} className="rounded-full border border-[#d4af37] bg-[#12230f] px-8 py-4 text-xs tracking-[0.25em] text-[#d4af37] hover:bg-[#d4af37] hover:text-black transition">
                     + ADD PRODUCT
                   </button>
@@ -361,8 +361,9 @@ export default function ProductManagement() {
                                     <path d="M12 4v16"></path>
                                   </svg>
                                 </button>
-                                {hasRight('PRD_EDIT') && <button onClick={() => openEditModal(p)} className="rounded-full border border-white/10 px-4 py-2 text-xs text-white/70 hover:border-[#d4af37] hover:text-[#d4af37] transition">EDIT</button>}
-                                {hasRight('PRD_DEL') && (
+                                  {(hasRight('PRD_EDIT') || userType === 'USER') && 
+                                  <button onClick={() => openEditModal(p)} className="rounded-full border border-white/10 px-4 py-2 text-xs text-white/70 hover:border-[#d4af37] hover:text-[#d4af37] transition">EDIT</button>}                      
+                                  {hasRight('PRD_DEL') && (
                                   <button onClick={() => openDeleteDialog(p)} className="rounded-full border border-red-500/20 px-4 py-2 text-xs text-red-400 hover:border-red-400 hover:text-red-300 transition">
                                     DELETE
                                   </button>
@@ -426,7 +427,7 @@ export default function ProductManagement() {
         {/* ==================== MODALS ==================== */}
         
         {/* ==================== ADD MODAL (FIXED + RESPONSIVE) ==================== */}
-        {showAddModal && hasRight('PRD_ADD') && (
+        {showAddModal && (hasRight('PRD_ADD') || userType === 'USER') && (
           <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-100 p-4 sm:p-6 overflow-y-auto" onClick={() => setShowAddModal(false)}>
             <div className="bg-[#0a0a0c] border border-white/10 w-full max-w-md sm:max-w-lg p-6 sm:p-10 rounded-none relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-white/50 hover:text-white text-3xl">×</button>
@@ -475,7 +476,7 @@ export default function ProductManagement() {
         )}
 
         {/* ==================== EDIT MODAL - ON TOP + RESPONSIVE ==================== */}
-        {showEditModal && selectedProduct && hasRight('PRD_EDIT') && (
+        {showEditModal && selectedProduct && (hasRight('PRD_EDIT') || userType === 'USER') && (
           <div 
             className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start justify-center z-100 pt-12 p-4 sm:p-6"
             onClick={() => {setShowEditModal(false); setSelectedProduct(null);}}
