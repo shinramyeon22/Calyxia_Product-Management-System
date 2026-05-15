@@ -95,8 +95,8 @@ export default function Sidebar({ isOpen = false, onClose = () => {}, isCollapse
               {/* PRODUCT PAGE - Now visible to everyone */}
               <Link 
                    to="/admin/products" 
-                   className={getLinkStyle('/admin/products')} 
-                   onClick={handleLinkClick}
+                    className={getLinkStyle('/admin/products')} 
+                    onClick={handleLinkClick}
             >
                 Product
               </Link>
