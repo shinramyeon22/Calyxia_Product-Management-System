@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSidebar } from '../context/SidebarContext';
 import Sidebar from './Sidebar';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);   // Desktop: open by default
+  const { isSidebarOpen, toggleSidebar } = useSidebar();
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   const handleSignOut = async () => {
@@ -27,7 +27,7 @@ export default function Navbar() {
             <button 
               onClick={() => {
                 if (window.innerWidth >= 1024) {
-                  setIsSidebarOpen(!isSidebarOpen);     // Toggle desktop sidebar
+                  toggleSidebar();     // Toggle desktop sidebar via context
                 } else {
                   setShowMobileSidebar(!showMobileSidebar); // Mobile drawer
                 }
@@ -72,7 +72,7 @@ export default function Navbar() {
       <Sidebar 
         isOpen={showMobileSidebar} 
         onClose={() => setShowMobileSidebar(false)}
-        isCollapsed={!isSidebarOpen}     // New prop for desktop
+        isCollapsed={!isSidebarOpen}     // Desktop collapsed state
       />
     </>
   );
