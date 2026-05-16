@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
-import { enrichProductsWithCurrentPrice, getPriceHistory, addPriceEntry, updateProduct } from '../services/productService';
+import { softDeleteProduct, enrichProductsWithCurrentPrice, getPriceHistory, addPriceEntry, updateProduct } from '../services/productService';
 import Navbar from '../components/Navbar';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/useToast';
 
 export default function Products() {
-  
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,35 +20,20 @@ export default function Products() {
 
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   
   // 1. Initialize state from URL
   const [activeTab, setActiveTab] = useState(
     searchParams.get('tab') === 'listing' ? 'listing' : 'products'
   );
 
-  // 2. Sync state when the URL changes (Crucial for Sidebar clicks)
+  // 2. Sync state when the URL changes
   useEffect(() => {
-    const tab = searchParams.get('tab');
-    setActiveTab(tab === 'listing' ? 'listing' : 'products');
+    const tabFromUrl = searchParams.get('tab') === 'listing' ? 'listing' : 'products';
+    setActiveTab(tabFromUrl);
   }, [searchParams]);
 
-  useEffect(() => {
-  const tabFromUrl = searchParams.get('tab') === 'listing' ? 'listing' : 'products';
-  if (activeTab !== tabFromUrl) {
-    setActiveTab(tabFromUrl);
-  }
-}, [searchParams]);
-
-
-  useEffect(() => {
-    async function getProducts() {
-      try {
-        const { data, error } = await supabase
-          .from('product')
-          .select('*')
-          .order('id', { ascending: true });
-
+  // 3. Fetch Products (Corrected structure)
   useEffect(() => {
   async function getProducts() {
     try {
@@ -57,21 +41,21 @@ export default function Products() {
       const { data, error } = await supabase
         .from('product')
         .select('*')
-        .is('deleted_at', null) // CRITICAL: Only fetch items not deleted
-        .order('id', { ascending: true });
+        .eq('record_status', 'A')
+        .order('prodcode', { ascending: true }); // ✅ correct column
 
       if (error) throw error;
 
-        const list = await enrichProductsWithCurrentPrice(data || []);
-        const safeList = (list || []).map(p => ({
-          ...p,
-          price: p.price ?? p.current_price ?? 0,
-          stock: p.stock ?? 0,
-          unit: p.unit ?? 'ea',
-          prodcode: p.prodcode || p.code || '—',
-          description: p.description || p.name || 'Untitled Asset'
-        }));
-        setProducts(safeList);
+      const list = await enrichProductsWithCurrentPrice(data || []);
+      const safeList = (list || []).map(p => ({
+        ...p,
+        price: p.price ?? p.current_price ?? 0,
+        stock: p.stock ?? 0,
+        unit: p.unit ?? 'ea',
+        prodcode: p.prodcode || p.code || '—',
+        description: p.description || p.name || 'Untitled Asset'
+      }));
+      setProducts(safeList);
     } catch (err) {
       console.error('Failed to load products:', err);
     } finally {
@@ -79,7 +63,7 @@ export default function Products() {
     }
   }
   getProducts();
-}, []);
+}, []); // ✅ empty array — runs once on mount
 
   const openEditModal = (product) => {
     setSelectedProduct(product);
@@ -98,9 +82,12 @@ export default function Products() {
     if (!selectedProduct) return;
     try {
       await updateProduct(selectedProduct.id, { description: editForm.description, unit: editForm.unit });
-      const { data } = await supabase.from('product').select('*').order('id', { ascending: true });
+      
+      // Refresh local list
+      const { data } = await supabase.from('product').select('*').is('deleted_at', null).order('prodcode', { ascending: true });
       const list = await enrichProductsWithCurrentPrice(data || []);
       setProducts(list);
+      
       setShowEditModal(false);
       showToast('Product updated successfully!', 'success');
     } catch (err) {
@@ -117,12 +104,31 @@ export default function Products() {
       await addPriceEntry(selectedProduct.prodcode, priceForm.effDate, priceForm.unitPrice, user?.id);
       const h = await getPriceHistory(selectedProduct.prodcode);
       setPriceHistories(prev => ({ ...prev, [selectedProduct.prodcode]: h }));
+      
+      // Update the main product list with the new current price
+      setProducts(prev => prev.map(p => 
+        p.prodcode === selectedProduct.prodcode 
+          ? { ...p, price: priceForm.unitPrice, effective_date: priceForm.effDate } 
+          : p
+      ));
+
       setPriceForm({ effDate: '', unitPrice: '' });
       showToast('Price entry added!', 'success');
     } catch (err) {
       showToast('Failed to add entry: ' + err.message, 'error');
     }
   };
+
+  const handleDelete = async (prodcode) => {
+  if (!window.confirm("Are you sure you want to move this product to Deleted Items?")) return;
+  try {
+    await softDeleteProduct(prodcode);
+    setProducts(prev => prev.filter(p => p.prodcode !== prodcode));
+    showToast('Product moved to Deleted Items', 'success');
+  } catch (err) {
+    showToast('Delete failed: ' + err.message, 'error');
+  }
+};
 
   const filteredProducts = products.filter(p =>
     (p.prodcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -147,40 +153,11 @@ export default function Products() {
     link.click();
   };
 
-const fetchProducts = async () => {
-  const { data } = await supabase
-    .from('product') // Ensure this matches your table name exactly
-    .select('*')
-    .is('deleted_at', null); // This hides the products you "deleted"
-
-  if (data) setProducts(data);
-};
-
-const handleDelete = async (id) => {
-  if (!window.confirm("Are you sure you want to move this product to Deleted Items?")) return;
-
-  try {
-    const { error } = await supabase
-      .from('product')
-      .update({ deleted_at: new Date().toISOString() }) // Soft delete
-      .eq('id', id);
-
-    if (error) throw error;
-
-    // Remove from UI state immediately
-    setProducts(prev => prev.filter(p => p.id !== id));
-    showToast('Product moved to Deleted Items', 'success');
-  } catch (err) {
-    showToast('Delete failed: ' + err.message, 'error');
-  }
-};
-
   return (
     <div className="min-h-screen bg-[#050505] text-white">
       <Navbar />
       <div className="max-w-7xl mx-auto px-6 pt-28 pb-12">
         
-
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -283,6 +260,10 @@ const handleDelete = async (id) => {
                             </span>
                           </td>
                           <td className="px-8 py-6 text-center">
+                            <div className="flex justify-center gap-2">
+                               <button onClick={() => openEditModal(p)} className="p-2 hover:bg-white/10 rounded transition">✎</button>
+                               <button onClick={() => handleDelete(p.prodcode)} className="p-2 hover:bg-red-500/20 text-red-400 rounded transition">🗑</button>
+                            </div>
                           </td>
                         </>
                       ) : (
@@ -432,7 +413,7 @@ const handleDelete = async (id) => {
                         priceHistories[selectedProduct.prodcode].map((entry, idx) => (
                           <tr key={idx} className="hover:bg-white/5">
                             <td className="px-6 py-4 text-white/80">{new Date(entry.effdate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
-                            <td className="px-6 py-4 text-right font-mono text-[#d4af37]">${Number(entry.unitprice).toLocaleString()}</td>
+                            <td className="px-6 py-4 text-right font-mono text-[#d4af37]">₱{Number(entry.unitprice).toLocaleString()}</td>
                           </tr>
                         ))
                       ) : (
