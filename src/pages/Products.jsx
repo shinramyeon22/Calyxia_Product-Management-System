@@ -168,7 +168,7 @@ export default function Products() {
               {activeTab === 'products' 
                 ? 'Manage product catalogue' 
                 : 'Current prices for all active assets'}
-            </p>
+            </p> 
           </div>
 
           <div className="flex gap-3">
