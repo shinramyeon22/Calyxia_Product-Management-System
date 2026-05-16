@@ -24,7 +24,16 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   if (!session) return <Navigate to="/login" replace />;
   // App.jsx - Update the requireAdmin logic
 if (requireAdmin) {
-  const type = (user?.user_type || user?.raw_user_meta_data?.user_type || '').toUpperCase();
+  const normalizeUserType = (type) => String(type || '').trim().replace(/[\s_-]+/g, '').toUpperCase();
+  const type = normalizeUserType(
+    user?.user_type ||
+    user?.raw_user_meta_data?.user_type ||
+    user?.raw_user_meta_data?.role ||
+    user?.user_metadata?.user_type ||
+    user?.user_metadata?.role ||
+    user?.app_metadata?.user_type ||
+    user?.app_metadata?.role
+  );
   // If we have a session but the user_type hasn't loaded yet, 
   // show the loading state instead of redirecting
   if (!type && session) {

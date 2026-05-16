@@ -13,7 +13,16 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ totalProducts: 0, activeUsers: 0, deletedCount: 0 });
   const [loading, setLoading] = useState(true);
 
-  const userType = (user?.user_type || user?.raw_user_meta_data?.user_type || 'USER').toUpperCase();
+  const normalizeUserType = (type) => String(type || 'USER').trim().replace(/[\s_-]+/g, '').toUpperCase();
+  const userType = normalizeUserType(
+    user?.user_type ||
+    user?.raw_user_meta_data?.user_type ||
+    user?.raw_user_meta_data?.role ||
+    user?.user_metadata?.user_type ||
+    user?.user_metadata?.role ||
+    user?.app_metadata?.user_type ||
+    user?.app_metadata?.role
+  );
   const isAdmin = ['ADMIN', 'SUPERADMIN'].includes(userType);
   const { isSidebarOpen } = useSidebar();
 
