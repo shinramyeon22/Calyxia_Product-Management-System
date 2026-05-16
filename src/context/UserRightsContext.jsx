@@ -17,33 +17,47 @@ export const UserRightsProvider = ({ children }) => {
     REP_001: 0, REP_002: 0 
   });
 
-  const applyRoleBasedRights = useCallback((u) => {
-    const userType = (u?.user_type || u?.raw_user_meta_data?.user_type || 'USER').toUpperCase();
-    
+  const normalizeUserType = (type) => String(type || 'USER').trim().replace(/[\s_-]+/g, '').toUpperCase();
+  const getUserType = (u) => normalizeUserType(
+    u?.user_type ||
+    u?.raw_user_meta_data?.user_type ||
+    u?.raw_user_meta_data?.role ||
+    u?.user_metadata?.user_type ||
+    u?.user_metadata?.role ||
+    u?.app_metadata?.user_type ||
+    u?.app_metadata?.role
+  );
+
+  const getRoleRights = useCallback((u) => {
+    const userType = getUserType(u);
     if (userType === 'SUPERADMIN') {
-      setRights({ 
+      return {
         PRD_ADD: 1, PRD_EDIT: 1, PRD_DEL: 1, PRD_VIEW: 1, PRD_RESTORE: 1,
         PRICE_ADD: 1, PRICE_VIEW: 1,
         REP_VIEW: 1, REP_TOP: 1, ADM_USER: 1, AUDIT_VIEW: 1, RIGHTS_MGMT: 1,
-        REP_001: 1, REP_002: 1 
-      });
-    } else if (userType === 'ADMIN') {
-      setRights({ 
+        REP_001: 1, REP_002: 1
+      };
+    }
+    if (userType === 'ADMIN') {
+      return {
         PRD_ADD: 1, PRD_EDIT: 1, PRD_DEL: 0, PRD_VIEW: 1, PRD_RESTORE: 1,
         PRICE_ADD: 1, PRICE_VIEW: 1,
         REP_VIEW: 1, REP_TOP: 0, ADM_USER: 1, AUDIT_VIEW: 1, RIGHTS_MGMT: 0,
-        REP_001: 1, REP_002: 0 
-      });
-    } else {
-      setRights({ 
-        PRD_ADD: 0, PRD_EDIT: 0, PRD_DEL: 0, PRD_VIEW: 1, PRD_RESTORE: 0,
-        PRICE_ADD: 0, PRICE_VIEW: 1,
-        REP_VIEW: 0, REP_TOP: 0, ADM_USER: 0, AUDIT_VIEW: 0, RIGHTS_MGMT: 0,
-        REP_001: 0, REP_002: 0
-      });
+        REP_001: 1, REP_002: 0
+      };
     }
-    setLoading(false);
+    return {
+      PRD_ADD: 0, PRD_EDIT: 0, PRD_DEL: 0, PRD_VIEW: 1, PRD_RESTORE: 0,
+      PRICE_ADD: 0, PRICE_VIEW: 1,
+      REP_VIEW: 0, REP_TOP: 0, ADM_USER: 0, AUDIT_VIEW: 0, RIGHTS_MGMT: 0,
+      REP_001: 0, REP_002: 0
+    };
   }, []);
+
+  const applyRoleBasedRights = useCallback((u) => {
+    setRights(getRoleRights(u));
+    setLoading(false);
+  }, [getRoleRights]);
 
   useEffect(() => {
     const fetchUserRights = async () => {
@@ -66,18 +80,22 @@ export const UserRightsProvider = ({ children }) => {
 
         if (error) throw error;
 
-        if (userRights && userRights.length > 0) {
-          // 1. Initialize with all 0s
+        const roleRights = getRoleRights(user);
+
+        if (userRights && userRights.length > 0 && roleRights.PRD_ADD !== 1) {
+          // 1. Initialize with the role-based or default rights map
           const rightsMap = {
-            PRD_ADD: 0, PRD_EDIT: 0, PRD_DEL: 0, PRD_VIEW: 0, PRD_RESTORE: 0,
-            REP_VIEW: 0, ADM_USER: 0, REP_001: 0, REP_002: 0
+            ...roleRights,
+            PRD_VIEW: roleRights.PRD_VIEW || 0,
+            PRICE_VIEW: roleRights.PRICE_VIEW || 0,
+            REP_TOP: roleRights.REP_TOP || 0,
+            REP_001: roleRights.REP_001 || 0,
+            REP_002: roleRights.REP_002 || 0,
           };
           
-          // 2. Direct Map from Database
+          // 2. Direct Map from Database rows
           userRights.forEach(row => {
             const val = row.has_access ? 1 : 0;
-            
-            // Map the direct ID (e.g., REP_001, ADM_USER)
             if (row.right_id) {
               rightsMap[row.right_id] = val;
               if (row.right_id === 'REP_TOP') {
@@ -88,7 +106,6 @@ export const UserRightsProvider = ({ children }) => {
               }
             }
 
-            // 3. Fallback for legacy module-based logic
             if (row.has_access) {
               if (row.module_id === 'PROD' && row.right_id === 'VIEW') rightsMap.PRD_VIEW = 1;
               if (row.module_id === 'REP' || row.module_id === 'REPORTS') rightsMap.REP_VIEW = 1;
@@ -98,10 +115,9 @@ export const UserRightsProvider = ({ children }) => {
 
           rightsMap.REP_TOP = rightsMap.REP_002;
           rightsMap.PRICE_VIEW = rightsMap.PRD_VIEW || 0;
-          
-          setRights(rightsMap); 
+          setRights(rightsMap);
         } else {
-          applyRoleBasedRights(user);
+          setRights(roleRights);
         }
       } catch (err) {
         console.error("UserRightsContext Error:", err.message);
@@ -112,7 +128,7 @@ export const UserRightsProvider = ({ children }) => {
     };
 
     fetchUserRights();
-  }, [user, authLoading, applyRoleBasedRights]);
+  }, [user, authLoading, applyRoleBasedRights, getRoleRights]);
       
   const providerValue = useMemo(() => ({
     rights,

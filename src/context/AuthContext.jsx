@@ -25,10 +25,10 @@ export const AuthProvider = ({ children }) => {
 
       if (error) {
         console.warn("No profile found, using default USER:", error.message);
-        // Fallback if the user exists in Auth but not in app_user table
+        const fallbackType = (authUser?.user_type || authUser?.raw_user_meta_data?.user_type || authUser?.raw_user_meta_data?.role || authUser?.user_metadata?.user_type || authUser?.user_metadata?.role || authUser?.app_metadata?.user_type || authUser?.app_metadata?.role || 'USER').toUpperCase();
         setUser({ 
           ...authUser, 
-          user_type: 'USER',
+          user_type: fallbackType,
           record_status: 'ACTIVE'
         });
       } else {
@@ -36,7 +36,8 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (err) {
       console.error("Profile fetch error:", err);
-      setUser({ ...authUser, user_type: 'USER' });
+      const fallbackType = (authUser?.user_type || authUser?.raw_user_meta_data?.user_type || authUser?.raw_user_meta_data?.role || authUser?.user_metadata?.user_type || authUser?.user_metadata?.role || authUser?.app_metadata?.user_type || authUser?.app_metadata?.role || 'USER').toUpperCase();
+      setUser({ ...authUser, user_type: fallbackType });
     } finally {
       setLoading(false); // CRITICAL: This stops the "Verifying Access" loop
     }
