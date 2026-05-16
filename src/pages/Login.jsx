@@ -50,16 +50,41 @@ export default function Login() {
     setLoading(true);
     setError('');
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // 1. Sign in with Supabase Auth
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setError("Login Error: " + error.message);
-      setLoading(false);
-    } else {
+      if (signInError) throw signInError;
+
+      // 2. Fetch the profile to check status
+      const { data: profile, error: profileError } = await supabase
+        .from('app_user')
+        .select('record_status')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // 3. 🛡️ THE GATEKEEPER CHECK
+      // This allows 'A' or 'ACTIVE' and blocks everything else (like 'I' or 'INACTIVE')
+      const status = profile?.record_status;
+      if (status !== 'A' && status !== 'ACTIVE') {
+        await supabase.auth.signOut(); 
+        setError("Access Denied: Your account is pending admin approval.");
+        setLoading(false);
+        return; 
+      }
+
+      // 4. Success!
       navigate('/products');
+
+    } catch (err) {
+      setError("Login Error: " + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 

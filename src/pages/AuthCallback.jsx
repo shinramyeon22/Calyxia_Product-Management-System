@@ -27,7 +27,7 @@ function AuthCallback() {
           .insert([{
             id: session.user.id,
             email: session.user.email,
-            record_status: 'ACTIVE', 
+            record_status: 'A', 
             user_type: 'USER'
           }]);
 
