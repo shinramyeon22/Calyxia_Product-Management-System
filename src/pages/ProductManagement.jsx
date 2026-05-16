@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import React, { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRights } from '../context/UserRightsContext';
 import { useToast } from '../context/useToast';
@@ -37,7 +38,17 @@ export default function ProductManagement() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const { hasRight, loading: rightsLoading } = useRights();
-  const userType = (user?.user_type || user?.raw_user_meta_data?.user_type || 'USER').toUpperCase();
+  const normalizeUserType = (type) => String(type || 'USER').trim().replace(/[\s_-]+/g, '').toUpperCase();
+  const userType = normalizeUserType(
+    user?.user_type ||
+    user?.raw_user_meta_data?.user_type ||
+    user?.raw_user_meta_data?.role ||
+    user?.user_metadata?.user_type ||
+    user?.user_metadata?.role ||
+    user?.app_metadata?.user_type ||
+    user?.app_metadata?.role
+  );
+  const isSuperAdmin = userType === 'SUPERADMIN';
   const canViewAudit = hasRight('AUDIT_VIEW');
   const { isSidebarOpen } = useSidebar();
 
@@ -88,7 +99,7 @@ export default function ProductManagement() {
   }, [priceHistories]);
 
   const openAddModal = () => {
-    if (!hasRight('PRD_ADD') && userType !== 'USER') return;
+    if (!hasRight('PRD_ADD') && !isSuperAdmin) return;
     setFormData({ prodcode: '', description: '', unit: 'ea', price: '', stock: 0, image_url: '' });
     setShowAddModal(true);
   };
@@ -219,7 +230,7 @@ export default function ProductManagement() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-[#050505] text-white pt-20">
-        <div className={`transition-opacity duration-300 ${anyModalOpen ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+        <div>
           <Navbar />
           <div className="flex">
             <Sidebar />
@@ -242,8 +253,8 @@ export default function ProductManagement() {
               </div>
 
               <div className="flex flex-wrap gap-4 items-center">
-                {(hasRight('PRD_ADD') || userType === 'USER') && (
-                  <button onClick={openAddModal} className="rounded-full border border-[#d4af37] bg-[#12230f] px-8 py-4 text-xs tracking-[0.25em] text-[#d4af37] hover:bg-[#d4af37] hover:text-black transition">
+                {(hasRight('PRD_ADD') || isSuperAdmin) && (
+                  <button onClick={openAddModal} className="inline-flex items-center justify-center min-w-max w-auto whitespace-nowrap rounded-full border border-[#d4af37] bg-[#12230f] px-4 py-3 text-[10px] sm:px-6 sm:py-3 sm:text-xs tracking-[0.25em] text-[#d4af37] hover:bg-[#d4af37] hover:text-black transition">
                     + ADD PRODUCT
                   </button>
                 )}
@@ -424,53 +435,130 @@ export default function ProductManagement() {
         </div>
         </div>
 
-        {/* ==================== MODALS ==================== */}
-        
-        {/* ==================== ADD MODAL (FIXED + RESPONSIVE) ==================== */}
-        {showAddModal && (hasRight('PRD_ADD') || userType === 'USER') && (
-          <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-100 p-4 sm:p-6 overflow-y-auto" onClick={() => setShowAddModal(false)}>
-            <div className="bg-[#0a0a0c] border border-white/10 w-full max-w-md sm:max-w-lg p-6 sm:p-10 rounded-none relative max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8 text-white/50 hover:text-white text-3xl">×</button>
-              
-              <div className="text-center mb-10">
-                <div className="text-[#d4af37] text-xs tracking-[0.5em] mb-2">NEW INSTITUTIONAL ASSET</div>
-                <h2 className="serif-font text-5xl italic tracking-tighter">Create Asset</h2>
+        {/* ==================== MODALS — portaled to document.body to escape any ancestor opacity/stacking context ==================== */}
+        {createPortal(
+          <>
+            {/* ==================== ADD MODAL ==================== */}
+            {showAddModal && (
+          <div
+            className="fixed inset-0 flex items-center justify-center z-[200] p-4"
+            style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
+            onClick={() => setShowAddModal(false)}
+          >
+            <div
+              className="relative w-full max-w-lg rounded-2xl border border-white/10 shadow-2xl flex flex-col"
+              style={{ backgroundColor: '#0d0d0f', maxHeight: '90dvh' }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Sticky header */}
+              <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-white/10">
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-xl transition"
+                >×</button>
+                <div className="text-center">
+                  <div className="text-[#d4af37] text-[10px] tracking-[0.5em] mb-1">NEW INSTITUTIONAL ASSET</div>
+                  <h2 className="serif-font text-4xl italic tracking-tighter text-white">Create Asset</h2>
+                </div>
               </div>
 
-              <form onSubmit={handleAddProduct} className="space-y-8">
-                <div>
-                  <label className="text-xs tracking-widest text-white/50 block mb-2">PRODUCT CODE (MAX 6)</label>
-                  <input type="text" placeholder="EG. XX0001" required maxLength={6} value={formData.prodcode} onChange={e=>setFormData({...formData, prodcode:e.target.value.toUpperCase()})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg font-mono outline-none focus:border-[#d4af37]" />
-                </div>
-                <div>
-                  <label className="text-xs tracking-widest text-white/50 block mb-2">DESCRIPTION (MAX 30)</label>
-                  <textarea placeholder="SHORT PRODUCT NAME OR LABEL" required maxLength={30} value={formData.description} onChange={e=>setFormData({...formData, description:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 h-24 outline-none focus:border-[#d4af37]" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Scrollable form body */}
+              <div className="flex-1 overflow-y-auto px-6 py-6">
+                <form id="addProductForm" onSubmit={handleAddProduct} className="space-y-6">
                   <div>
-                    <label className="text-xs tracking-widest text-white/50 block mb-2">UNIT</label>
-                    <select value={formData.unit} onChange={e=>setFormData({...formData, unit:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]">
-                      <option value="ea">EA</option><option value="pc">PC</option><option value="mtr">MTR</option><option value="pkg">PKG</option><option value="ltr">LTR</option>
-                    </select>
+                    <label className="text-xs tracking-widest text-white/50 block mb-2">PRODUCT CODE (MAX 6)</label>
+                    <input
+                      type="text" placeholder="EG. XX0001" required maxLength={6}
+                      value={formData.prodcode}
+                      onChange={e => setFormData({...formData, prodcode: e.target.value.toUpperCase()})}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-base font-mono text-white outline-none focus:border-[#d4af37] transition"
+                    />
                   </div>
                   <div>
-                    <label className="text-xs tracking-widest text-white/50 block mb-2">STOCK</label>
-                    <input type="number" value={formData.stock} onChange={e=>setFormData({...formData, stock:parseInt(e.target.value)||0})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]" />
+                    <label className="text-xs tracking-widest text-white/50 block mb-2">DESCRIPTION (MAX 30)</label>
+                    <textarea
+                      placeholder="SHORT PRODUCT NAME OR LABEL" required maxLength={30}
+                      value={formData.description}
+                      onChange={e => setFormData({...formData, description: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 h-20 text-base text-white outline-none focus:border-[#d4af37] transition resize-none"
+                    />
                   </div>
-                </div>
-                <div>
-                  <label className="text-xs tracking-widest text-white/50 block mb-2">PRICE ($)</label>
-                  <input type="number" step="0.01" value={formData.price} onChange={e=>setFormData({...formData, price:e.target.value})} className="w-full bg-transparent border-b border-white/20 pb-3 text-lg outline-none focus:border-[#d4af37]" />
-                </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs tracking-widest text-white/50 block mb-2">UNIT</label>
+                      <select
+                        value={formData.unit}
+                        onChange={e => setFormData({...formData, unit: e.target.value})}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-base text-white outline-none focus:border-[#d4af37] transition"
+                      >
+                        <option value="ea" className="bg-[#0d0d0f]">EA</option>
+                        <option value="pc" className="bg-[#0d0d0f]">PC</option>
+                        <option value="mtr" className="bg-[#0d0d0f]">MTR</option>
+                        <option value="pkg" className="bg-[#0d0d0f]">PKG</option>
+                        <option value="ltr" className="bg-[#0d0d0f]">LTR</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs tracking-widest text-white/50 block mb-2">STOCK</label>
+                      <input
+                        type="number"
+                        value={formData.stock}
+                        onChange={e => setFormData({...formData, stock: parseInt(e.target.value) || 0})}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-base text-white outline-none focus:border-[#d4af37] transition"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs tracking-widest text-white/50 block mb-2">PRICE ($)</label>
+                    <input
+                      type="number" step="0.01"
+                      value={formData.price}
+                      onChange={e => setFormData({...formData, price: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-base text-white outline-none focus:border-[#d4af37] transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs tracking-widest text-white/50 block mb-2">PRODUCT IMAGE</label>
+                    <div className="flex items-center gap-4">
+                      <img
+                        id="addImagePreview"
+                        src={formData.image_url || 'https://via.placeholder.com/80x80/111/ddd?text=No+Image'}
+                        className="w-14 h-14 object-cover border border-white/20 rounded-lg flex-shrink-0"
+                        alt="Preview"
+                      />
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('addImageUpload').click()}
+                          className="px-4 py-2 text-xs border border-white/20 rounded-lg hover:border-[#d4af37] hover:text-[#d4af37] transition text-white/70"
+                        >
+                          UPLOAD IMAGE
+                        </button>
+                        <input
+                          type="file" id="addImageUpload" accept="image/*" className="hidden"
+                          onChange={(e) => handleImageUpload(e, 'add')}
+                        />
+                        <p className="text-[10px] text-white/30 mt-1">JPG or PNG • Max 2MB</p>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
 
-               
-                {/* ========== END FIXED IMAGE SECTION ========== */}
-
-                <div className="flex gap-4 pt-4">
-                  <button type="button" onClick={()=>setShowAddModal(false)} className="flex-1 py-4 border border-white/30 hover:bg-white/5 transition">CANCEL</button>
-                  <button type="submit" disabled={savingAsset} className="flex-1 py-4 bg-[#d4af37] text-black font-medium tracking-widest hover:bg-white transition disabled:opacity-40 disabled:pointer-events-none">{savingAsset ? 'SAVING…' : 'CREATE ASSET'}</button>
-                </div>
-              </form>
+              {/* Sticky footer buttons */}
+              <div className="flex-shrink-0 px-6 pb-6 pt-4 border-t border-white/10 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-3 border border-white/20 rounded-lg text-white/70 text-xs tracking-widest hover:bg-white/5 transition"
+                >CANCEL</button>
+                <button
+                  type="submit"
+                  form="addProductForm"
+                  disabled={savingAsset}
+                  className="flex-1 py-3 bg-[#d4af37] text-black rounded-lg text-xs font-bold tracking-widest hover:bg-white transition disabled:opacity-40 disabled:pointer-events-none"
+                >{savingAsset ? 'SAVING…' : 'CREATE ASSET'}</button>
+              </div>
             </div>
           </div>
         )}
@@ -633,6 +721,9 @@ export default function ProductManagement() {
               </div>
             </div>
           </div>
+        )}
+          </>,
+          document.body
         )}
       </div>
     </ErrorBoundary>
