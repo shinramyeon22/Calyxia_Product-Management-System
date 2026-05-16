@@ -39,22 +39,6 @@ const Register = () => {
 
       if (signUpError) throw signUpError;
 
-      // Create app_user record immediately (optional, callback also does it)
-      const { error: profileError } = await supabase
-        .from('app_user')
-        .insert([{
-          id: (await supabase.auth.getUser()).data.user?.id,
-          email,
-          full_name: fullName,
-          username,
-          record_status: 'ACTIVE',
-          user_type: 'USER'
-        }]);
-
-      if (profileError && !profileError.message.includes('duplicate')) {
-        console.warn('Profile insert note:', profileError.message);
-      }
-
       alert('Verification link sent! Please check your email to activate your account.');
       navigate('/login');
     } catch (error) {
