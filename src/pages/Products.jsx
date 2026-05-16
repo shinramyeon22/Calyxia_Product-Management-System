@@ -43,6 +43,14 @@ export default function Products() {
 
 
   useEffect(() => {
+    async function getProducts() {
+      try {
+        const { data, error } = await supabase
+          .from('product')
+          .select('*')
+          .order('id', { ascending: true });
+
+  useEffect(() => {
   async function getProducts() {
     try {
       setLoading(true);
