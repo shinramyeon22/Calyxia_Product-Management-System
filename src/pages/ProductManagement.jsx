@@ -168,7 +168,7 @@ export default function ProductManagement() {
   };
 
   const handleAddPriceEntry = async (prodcode) => {
-    if (!hasRight('PRICE_ADD')) return;
+    if (!hasRight('PRICE_ADD') && userType !== 'USER') return;
     if (!priceForm.effDate || !priceForm.unitPrice) return showToast('Date and price required', 'error');
     try {
       await addPriceEntry(prodcode, priceForm.effDate, priceForm.unitPrice, user?.id);
@@ -380,13 +380,13 @@ export default function ProductManagement() {
                                       <span className="text-xs tracking-[0.5em] text-white/50">PRICE HISTORY</span>
                                       <div className="text-lg text-white mt-1">{p.description}</div>
                                     </div>
-                                    {hasRight('PRICE_ADD') && (
+                                    {(hasRight('PRICE_ADD') || userType === 'USER') && (
                                       <div className="flex gap-3 items-end">
-                                        <input type="date" value={priceForm.effDate} onChange={e => setPriceForm({ ...priceForm, effDate: e.target.value })} className="bg-transparent border-b border-white/20 text-sm pb-2 outline-none focus:border-[#d4af37]" />
-                                        <input type="number" step="0.01" placeholder="Unit Price" value={priceForm.unitPrice} onChange={e => setPriceForm({ ...priceForm, unitPrice: e.target.value })} className="bg-transparent border-b border-white/20 text-sm pb-2 w-32 outline-none focus:border-[#d4af37]" />
-                                        <button onClick={() => handleAddPriceEntry(p.prodcode)} className="px-6 py-2 text-xs border border-[#d4af37] text-[#d4af37] hover:bg-[#d4af37] hover:text-black transition">ADD ENTRY</button>
-                                      </div>
-                                    )}
+    <input type="date" value={priceForm.effDate} onChange={e => setPriceForm({ ...priceForm, effDate: e.target.value })} className="bg-transparent border-b border-white/20 text-sm pb-2 outline-none focus:border-[#d4af37]" />
+    <input type="number" step="0.01" placeholder="Unit Price" value={priceForm.unitPrice} onChange={e => setPriceForm({ ...priceForm, unitPrice: e.target.value })} className="bg-transparent border-b border-white/20 text-sm pb-2 w-32 outline-none focus:border-[#d4af37]" />
+    <button onClick={() => handleAddPriceEntry(p.prodcode)} className="px-6 py-2 text-xs border border-[#d4af37] text-[#d4af37] hover:bg-[#d4af37] hover:text-black transition">ADD ENTRY</button>
+  </div>
+)}
                                   </div>
                                   <div className="border border-white/10">
                                     <table className="w-full text-sm">
