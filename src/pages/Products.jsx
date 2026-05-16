@@ -153,6 +153,34 @@ export default function Products() {
     link.click();
   };
 
+const fetchProducts = async () => {
+  const { data } = await supabase
+    .from('product') // Ensure this matches your table name exactly
+    .select('*')
+    .is('deleted_at', null); // This hides the products you "deleted"
+
+  if (data) setProducts(data);
+};
+
+const handleDelete = async (id) => {
+  if (!window.confirm("Are you sure you want to move this product to Deleted Items?")) return;
+
+  try {
+    const { error } = await supabase
+      .from('product')
+      .update({ deleted_at: new Date().toISOString() }) // Soft delete
+      .eq('id', id);
+
+    if (error) throw error;
+
+    // Remove from UI state immediately
+    setProducts(prev => prev.filter(p => p.id !== id));
+    showToast('Product moved to Deleted Items', 'success');
+  } catch (err) {
+    showToast('Delete failed: ' + err.message, 'error');
+  }
+};
+
   return (
     <div className="min-h-screen bg-[#050505] text-white">
       <Navbar />

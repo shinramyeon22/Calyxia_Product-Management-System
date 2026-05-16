@@ -18,6 +18,18 @@ export default function Navbar() {
   const userInitial = user?.email?.[0]?.toUpperCase() || 'U';
   const username = user?.email?.split('@')[0] || 'User';
 
+  const normalizeUserType = (type) => String(type || 'USER').trim().replace(/[\s_-]+/g, '').toUpperCase();
+  const userType = normalizeUserType(
+    user?.user_type ||
+    user?.raw_user_meta_data?.user_type ||
+    user?.raw_user_meta_data?.role ||
+    user?.user_metadata?.user_type ||
+    user?.user_metadata?.role ||
+    user?.app_metadata?.user_type ||
+    user?.app_metadata?.role
+  );
+  const roleDisplay = (userType || 'USER').toLowerCase();
+
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 bg-black border-b border-white/10 z-[200] h-20">
@@ -54,7 +66,7 @@ export default function Navbar() {
               </div>
               <div className="hidden md:block">
                 <div className="text-sm text-white">{username}</div>
-                <div className="text-[10px] text-white/40 -mt-0.5">User</div>
+                <div className="text-[10px] text-white/40 -mt-0.5">{roleDisplay}</div>
               </div>
             </div>
 
