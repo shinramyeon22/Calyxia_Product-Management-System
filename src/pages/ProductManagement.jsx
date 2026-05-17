@@ -192,7 +192,7 @@ const [statusFilter, setStatusFilter] = useState('active');
 
   if (loading || rightsLoading) {
     return (
-      <div className="min-h-screen bg-[#f8faff] pt-20">
+      <div className="min-h-screen pt-20" style={{ background: 'linear-gradient(135deg, #ececf8 0%, #f5f5ff 45%, #eef0ff 100%)' }}>
         <Navbar />
         <div className="flex">
           <Sidebar />
@@ -206,11 +206,21 @@ const [statusFilter, setStatusFilter] = useState('active');
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-[#f8faff] pt-20">
+      <div className="min-h-screen pt-20" style={{ background: 'linear-gradient(135deg, #ececf8 0%, #f5f5ff 45%, #eef0ff 100%)' }}>
         <Navbar />
         <div className="flex">
           <Sidebar />
-          <div className={`flex-1 transition-all duration-300 p-8 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
+          <div className={`flex-1 transition-all duration-300 p-8 relative overflow-hidden ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
+
+            {/* Floating background orbs */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+              <div style={{ position: 'absolute', top: '-100px', right: '8%', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.13) 0%, transparent 65%)', filter: 'blur(40px)' }} />
+              <div style={{ position: 'absolute', top: '300px', right: '3%', width: '260px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.10) 0%, transparent 65%)', filter: 'blur(30px)' }} />
+              <div style={{ position: 'absolute', bottom: '80px', left: '15%', width: '340px', height: '340px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 65%)', filter: 'blur(50px)' }} />
+              <div style={{ position: 'absolute', top: '80px', right: '9%', width: '14px', height: '14px', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 4px 20px rgba(99,102,241,0.55), 0 0 0 4px rgba(99,102,241,0.08)' }} />
+              <div style={{ position: 'absolute', top: '240px', right: '22%', width: '9px', height: '9px', borderRadius: '50%', background: 'linear-gradient(135deg, #a5b4fc, #c4b5fd)', boxShadow: '0 2px 12px rgba(139,92,246,0.45)' }} />
+              <div style={{ position: 'absolute', top: '40px', right: '12%', width: '110px', height: '110px', borderRadius: '24px', background: 'linear-gradient(135deg, rgba(255,255,255,0.35) 0%, rgba(199,210,254,0.18) 100%)', border: '1px solid rgba(255,255,255,0.6)', backdropFilter: 'blur(12px)', transform: 'rotate(18deg)', boxShadow: '0 8px 32px rgba(99,102,241,0.10)' }} />
+            </div>
 
             {/* Header */}
             <div className="mb-6">
@@ -222,7 +232,7 @@ const [statusFilter, setStatusFilter] = useState('active');
                   </span>
                 )}
               </div>
-              <h1 className="serif-font text-4xl italic tracking-tighter text-[#1e1b4b]">Manage product catalogue</h1>
+              <h1 className="serif-font text-4xl italic tracking-tighter" style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #4338ca 55%, #7c3aed 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Manage product catalogue</h1>
               <p className="text-slate-400 text-sm mt-1">Search products by code or description, then use the table controls to manage active and inactive inventory.</p>
             </div>
 
@@ -235,7 +245,7 @@ const [statusFilter, setStatusFilter] = useState('active');
                   placeholder="Search by code or description..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-white border border-slate-200 pl-9 pr-4 py-2.5 rounded-xl text-sm text-[#1e1b4b] placeholder:text-slate-300 focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20 outline-none transition"
+                  className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 pl-9 pr-4 py-2.5 rounded-xl text-sm text-[#1e1b4b] placeholder:text-slate-300 focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20 outline-none transition"
                 />
                 <svg className="absolute left-3 top-3 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -244,7 +254,7 @@ const [statusFilter, setStatusFilter] = useState('active');
 
               {/* Status filter pills — admin/superadmin only */}
               {userType !== 'USER' && (
-                <div className="inline-flex bg-white border border-slate-200 rounded-xl p-1">
+                <div className="inline-flex bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-1">
                   {['active', 'inactive', 'all'].map((s) => (
                     <button
                       key={s}
@@ -282,7 +292,7 @@ const [statusFilter, setStatusFilter] = useState('active');
             )}
 
             {/* Table */}
-            <div className="bg-white border border-slate-200 overflow-hidden rounded-2xl shadow-sm">
+            <div className="overflow-hidden rounded-2xl" style={{ background: 'linear-gradient(145deg, rgba(255,255,255,0.92) 0%, rgba(238,242,255,0.75) 100%)', backdropFilter: 'blur(24px)', border: '1px solid rgba(99,102,241,0.14)', boxShadow: '0 2px 0 rgba(255,255,255,0.95) inset, 0 12px 40px rgba(99,102,241,0.09)' }}>
               <table className="w-full text-left text-sm table-fixed">
                 <colgroup>
                   <col style={{ width: '11%' }} />
@@ -292,7 +302,7 @@ const [statusFilter, setStatusFilter] = useState('active');
                   <col style={{ width: '14%' }} />
                   <col style={{ width: '17%' }} />
                 </colgroup>
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="border-b border-slate-200/80" style={{ background: 'rgba(255,255,255,0.5)' }}>
                   <tr className="text-[10px] tracking-wider text-slate-400 uppercase font-semibold">
                     <th className="px-6 py-4 text-left">Prod. Code</th>
                     <th className="px-6 py-4 text-left">Description</th>
@@ -403,7 +413,7 @@ const [statusFilter, setStatusFilter] = useState('active');
                                   </div>
                                   <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
                                     <table className="w-full text-sm">
-                                      <thead className="bg-slate-50 border-b border-slate-200">
+                                      <thead className="border-b border-slate-200/80" style={{ background: 'rgba(255,255,255,0.5)' }}>
                                         <tr className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
                                           <th className="px-5 py-3 text-left">Effective Date</th>
                                           <th className="px-5 py-3 text-right">Unit Price</th>

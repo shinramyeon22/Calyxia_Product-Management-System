@@ -61,24 +61,37 @@ export default function Reports() {
   }, [activeTab, canViewProductReport, canViewTopSellingReport, navigate]);
 
   return (
-    <div className="min-h-screen bg-[#f8faff]">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #ececf8 0%, #f5f5ff 45%, #eef0ff 100%)' }}>
       <Navbar />
       <div className="flex">
         <Sidebar />
 
-        <div className={`flex-1 transition-all duration-300 p-8 pt-28 pb-12 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
+        <div className={`flex-1 transition-all duration-300 p-8 pt-28 pb-12 relative overflow-hidden ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
+
+          {/* Floating background orbs */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div style={{ position: 'absolute', top: '-100px', right: '8%', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.13) 0%, transparent 65%)', filter: 'blur(40px)' }} />
+            <div style={{ position: 'absolute', top: '300px', right: '3%', width: '260px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.10) 0%, transparent 65%)', filter: 'blur(30px)' }} />
+            <div style={{ position: 'absolute', bottom: '80px', left: '15%', width: '340px', height: '340px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 65%)', filter: 'blur(50px)' }} />
+            <div style={{ position: 'absolute', top: '80px', right: '9%', width: '14px', height: '14px', borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 4px 20px rgba(99,102,241,0.55), 0 0 0 4px rgba(99,102,241,0.08)' }} />
+            <div style={{ position: 'absolute', top: '240px', right: '22%', width: '9px', height: '9px', borderRadius: '50%', background: 'linear-gradient(135deg, #a5b4fc, #c4b5fd)', boxShadow: '0 2px 12px rgba(139,92,246,0.45)' }} />
+            <div style={{ position: 'absolute', top: '60px', right: '12%', width: '110px', height: '110px', borderRadius: '24px', background: 'linear-gradient(135deg, rgba(255,255,255,0.35) 0%, rgba(199,210,254,0.18) 100%)', border: '1px solid rgba(255,255,255,0.6)', backdropFilter: 'blur(12px)', transform: 'rotate(18deg)', boxShadow: '0 8px 32px rgba(99,102,241,0.10)' }} />
+          </div>
 
           {/* Header */}
-          <div className="mb-10">
+          <div className="mb-10 relative">
             <div className="text-[#6366f1] text-xs tracking-[0.4em] font-semibold block mb-2 uppercase">Analytics</div>
-            <h1 className="serif-font text-5xl md:text-6xl italic tracking-tighter leading-tight text-[#1e1b4b]">
+            <h1 className="serif-font text-5xl md:text-6xl italic tracking-tighter leading-tight" style={{
+              background: 'linear-gradient(135deg, #1e1b4b 0%, #4338ca 55%, #7c3aed 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'
+            }}>
               Reports
             </h1>
             <p className="text-slate-400 mt-2">Business intelligence & performance insights</p>
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b border-slate-200 mb-10">
+          <div className="flex border-b border-slate-200/60 mb-10 relative">
             {canViewTopSellingReport && (
               <button
                 onClick={() => setActiveTab('topselling')}
@@ -94,7 +107,7 @@ export default function Reports() {
           </div>
 
           {/* Content */}
-          <div className="pb-12">
+          <div className="pb-12 relative">
             {loading ? (
               <div className="flex justify-center py-20">
                 <div className="text-[#6366f1] text-xs tracking-[0.4em] animate-pulse uppercase">Loading report...</div>
@@ -108,7 +121,7 @@ export default function Reports() {
                   </div>
                   <button
                     onClick={() => window.location.reload()}
-                    className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all text-slate-600"
+                    className="px-5 py-2.5 bg-white/70 backdrop-blur-sm border border-slate-200 hover:bg-white rounded-xl text-xs font-semibold tracking-wider uppercase transition-all text-slate-600"
                   >
                     ↻ Refresh
                   </button>
@@ -118,7 +131,12 @@ export default function Reports() {
                   <>
                     {/* Hero Card */}
                     {topSelling[0] && (
-                      <div className="bg-gradient-to-r from-emerald-50 to-white border border-emerald-200 rounded-2xl p-8 flex flex-col md:flex-row items-center gap-8 shadow-sm">
+                      <div className="rounded-2xl p-8 flex flex-col md:flex-row items-center gap-8" style={{
+                        background: 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(255,255,255,0.85) 100%)',
+                        backdropFilter: 'blur(20px)',
+                        border: '1px solid rgba(16,185,129,0.20)',
+                        boxShadow: '0 2px 0 rgba(255,255,255,0.9) inset, 0 12px 40px rgba(16,185,129,0.08)'
+                      }}>
                         <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-2xl">🏆</div>
                         <div>
                           <div className="text-emerald-600 text-[10px] tracking-[0.4em] uppercase font-bold mb-1">Market Leader</div>
@@ -135,9 +153,14 @@ export default function Reports() {
                     )}
 
                     {/* Table */}
-                    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                    <div className="overflow-hidden rounded-2xl" style={{
+                      background: 'linear-gradient(145deg, rgba(255,255,255,0.92) 0%, rgba(238,242,255,0.75) 100%)',
+                      backdropFilter: 'blur(24px)',
+                      border: '1px solid rgba(99,102,241,0.14)',
+                      boxShadow: '0 2px 0 rgba(255,255,255,0.95) inset, 0 12px 40px rgba(99,102,241,0.09)'
+                    }}>
                       <table className="w-full text-sm">
-                        <thead className="bg-slate-50 border-b border-slate-200">
+                        <thead className="border-b border-slate-200/80" style={{ background: 'rgba(255,255,255,0.5)' }}>
                           <tr className="text-[10px] tracking-wider text-slate-400 uppercase font-semibold">
                             <th className="px-6 py-4 text-left">Rank</th>
                             <th className="px-6 py-4 text-left">Product Details</th>
@@ -146,10 +169,13 @@ export default function Reports() {
                             <th className="px-6 py-4 text-left pl-10">Market Share</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-100/80">
                           {topSelling.map((item, index) => (
-                            <tr key={index} className="hover:bg-slate-50/60 transition-colors">
-                              <td className="px-6 py-5 text-xl font-mono text-[#6366f1] font-bold">#{index + 1}</td>
+                            <tr key={index} className="hover:bg-white/60 transition-colors">
+                              <td className="px-6 py-5 text-xl font-mono font-bold" style={{
+                                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'
+                              }}>#{index + 1}</td>
                               <td className="px-6 py-5">
                                 <div className="font-medium text-[#1e1b4b]">{item.description}</div>
                                 <div className="text-[10px] text-slate-400 font-mono tracking-tight uppercase mt-0.5">{item.prodcode}</div>
@@ -177,7 +203,11 @@ export default function Reports() {
                     </div>
                   </>
                 ) : (
-                  <div className="text-center py-24 border border-dashed border-slate-200 rounded-2xl bg-white">
+                  <div className="text-center py-24 rounded-2xl" style={{
+                    background: 'linear-gradient(145deg, rgba(255,255,255,0.85) 0%, rgba(238,242,255,0.6) 100%)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px dashed rgba(99,102,241,0.20)'
+                  }}>
                     <div className="text-slate-400 text-xs tracking-[0.4em] uppercase">No sales data captured</div>
                   </div>
                 )}
