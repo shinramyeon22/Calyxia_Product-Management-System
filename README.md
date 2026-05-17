@@ -4,19 +4,19 @@ A comprehensive product management system built with React and Vite, featuring r
 
 ## Team Members
 
-- [Claryss Mae Pangasian](https://github.com/shinramyeon22) - Project Lead/Scrum Master
-- [Eunice Mabasa](https://github.com/eunicemabasa) - Frontend Developer (UI/UX)
-- [Josh Tomacruz](https://github.com/tomacruzjosh) - DB Engineer
-- [Alexza Gayle Ignacio](https://github.com/alexzaignacio) - Rights & Authentication Specialist
-- [Thezzalia Mae Salcedo](https://github.com/ThezzaSalcedo) - QA / Documentation Specialist
+- **[Claryss Mae Pangasian](https://github.com/claryss-pangasian)** - Project Lead/Scrum Master
+- **[Eunice Mabasa](https://github.com/eunice-mabasa)** - Frontend Developer (UI/UX)
+- **[Josh Tomacruz](https://github.com/josh-tomacruz)** - DB Engineer
+- **[Alexza Gayle Ignacio](https://github.com/alexza-ignacio)** - Rights & Authentication Specialist
+- **[Thezzalia Mae Salcedo](https://github.com/thezzalia-salcedo)** - QA / Documentation Specialist
 
 ## Tech Stack
 
-- Frontend: React 18, Vite
-- Styling: CSS
-- Database: PostgreSQL (via Supabase)
-- Authentication: Supabase Auth
-- State Management: React Context API
+- **Frontend Framework**: React 18, Vite
+- **Styling**: CSS
+- **Database**: PostgreSQL (via Supabase)
+- **Authentication**: Supabase Auth
+- **State Management**: React Context API
 
 ## Features
 
@@ -26,40 +26,54 @@ A comprehensive product management system built with React and Vite, featuring r
 - Admin dashboard
 - Responsive UI design
 
-## Installation
+## Setup and Installation
 
-1. Clone the repository:
+1. **Clone the Repository**
+```bash
 git clone https://github.com/shinramyeon22/Calyxia_Product-Management-System.git
+```
 
-2. Install dependencies:
+2. **Install Dependencies**
+```bash
 npm install
+```
 
-3. Set up environment variables:
-cp .env.example .env
-Update .env with your Supabase credentials.
+3. **Configure Environment Variables**
+Create a `.env` file in the root directory and add the following:
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+*Note: Coordinate with your team members to obtain the API keys.*
 
-4. Run the development server:
+4. **Run the Project**
+```bash
 npm run dev
+```
 
-5. Build for production:
-npm run build
+5. **Run Tests**
+```bash
+npm run test
+```
 
 ## Database Setup
 
-Run the database migrations located in the db/migrations/ directory:
-- HopeDB-2.sql - Main database schema
-- rights.sql - Rights and permissions setup
-- seed_superadmin_and_module_permissions.sql - Seed data for superadmin and permissions
+Run the database migrations located in the `db/migrations/` directory:
+- `HopeDB-2.sql` - Main database schema
+- `rights.sql` - Rights and permissions setup
+- `seed_superadmin_and_module_permissions.sql` - Seed data for superadmin and permissions
 
 ## Project Structure
 
+```
 src/
 ├── components/       # Reusable UI components
 ├── context/         # React context providers
 ├── pages/           # Page components
 ├── services/        # API services
 └── App.jsx          # Main application component
+```
 
-## Contributing
+## License
 
-This is a group project for academic purposes. For questions or issues, please contact the project lead.
+This project is licensed under the MIT License - see the LICENSE file for details.
