@@ -187,19 +187,6 @@ const [statusFilter, setStatusFilter] = useState('active');
     }
   };
 
-  const handleImageUpload = (e, type) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64String = event.target.result;
-      setFormData(prev => ({ ...prev, image_url: base64String }));
-      const previewId = type === 'edit' ? 'editImagePreview' : 'addImagePreview';
-      const preview = document.getElementById(previewId);
-      if (preview) preview.src = base64String;
-    };
-    reader.readAsDataURL(file);
-  };
 
   const inputClass = "w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#1e1b4b] placeholder:text-slate-300 focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20 outline-none transition";
 
