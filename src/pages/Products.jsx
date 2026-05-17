@@ -17,53 +17,59 @@ export default function Products() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [editForm, setEditForm] = useState({ description: '', unit: '' });
+  const [sortConfig, setSortConfig] = useState({ key: 'prodcode', direction: 'asc' });
+
+  const handleSort = (key) => {
+    setSortConfig(prev =>
+      prev.key === key
+        ? { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+        : { key, direction: 'asc' }
+    );
+  };
 
   const { user } = useAuth();
   const { showToast } = useToast();
   const [searchParams] = useSearchParams();
-  
-  // 1. Initialize state from URL
+
   const [activeTab, setActiveTab] = useState(
     searchParams.get('tab') === 'listing' ? 'listing' : 'products'
   );
 
-  // 2. Sync state when the URL changes
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') === 'listing' ? 'listing' : 'products';
     setActiveTab(tabFromUrl);
   }, [searchParams]);
 
-  // 3. Fetch Products (Corrected structure)
   useEffect(() => {
-  async function getProducts() {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('product')
-        .select('*')
-        .eq('record_status', 'A')
-        .order('prodcode', { ascending: true }); // ✅ correct column
+    async function getProducts() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('product')
+          .select('*')
+          .eq('record_status', 'A')
+          .order('prodcode', { ascending: true });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      const list = await enrichProductsWithCurrentPrice(data || []);
-      const safeList = (list || []).map(p => ({
-        ...p,
-        price: p.price ?? p.current_price ?? 0,
-        stock: p.stock ?? 0,
-        unit: p.unit ?? 'ea',
-        prodcode: p.prodcode || p.code || '—',
-        description: p.description || p.name || 'Untitled Asset'
-      }));
-      setProducts(safeList);
-    } catch (err) {
-      console.error('Failed to load products:', err);
-    } finally {
-      setLoading(false);
+        const list = await enrichProductsWithCurrentPrice(data || []);
+        const safeList = (list || []).map(p => ({
+          ...p,
+          price: p.price ?? p.current_price ?? 0,
+          stock: p.stock ?? 0,
+          unit: p.unit ?? 'ea',
+          prodcode: p.prodcode || p.code || '—',
+          description: p.description || p.name || 'Untitled Asset'
+        }));
+        setProducts(safeList);
+      } catch (err) {
+        console.error('Failed to load products:', err);
+      } finally {
+        setLoading(false);
+      }
     }
-  }
-  getProducts();
-}, []); // ✅ empty array — runs once on mount
+    getProducts();
+  }, []);
 
   const openEditModal = (product) => {
     setSelectedProduct(product);
@@ -82,12 +88,11 @@ export default function Products() {
     if (!selectedProduct) return;
     try {
       await updateProduct(selectedProduct.id, { description: editForm.description, unit: editForm.unit });
-      
-      // Refresh local list
+
       const { data } = await supabase.from('product').select('*').is('deleted_at', null).order('prodcode', { ascending: true });
       const list = await enrichProductsWithCurrentPrice(data || []);
       setProducts(list);
-      
+
       setShowEditModal(false);
       showToast('Product updated successfully!', 'success');
     } catch (err) {
@@ -104,11 +109,10 @@ export default function Products() {
       await addPriceEntry(selectedProduct.prodcode, priceForm.effDate, priceForm.unitPrice, user?.id);
       const h = await getPriceHistory(selectedProduct.prodcode);
       setPriceHistories(prev => ({ ...prev, [selectedProduct.prodcode]: h }));
-      
-      // Update the main product list with the new current price
-      setProducts(prev => prev.map(p => 
-        p.prodcode === selectedProduct.prodcode 
-          ? { ...p, price: priceForm.unitPrice, effective_date: priceForm.effDate } 
+
+      setProducts(prev => prev.map(p =>
+        p.prodcode === selectedProduct.prodcode
+          ? { ...p, price: priceForm.unitPrice, effective_date: priceForm.effDate }
           : p
       ));
 
@@ -120,28 +124,50 @@ export default function Products() {
   };
 
   const handleDelete = async (prodcode) => {
-  if (!window.confirm("Are you sure you want to move this product to Deleted Items?")) return;
-  try {
-    await softDeleteProduct(prodcode);
-    setProducts(prev => prev.filter(p => p.prodcode !== prodcode));
-    showToast('Product moved to Deleted Items', 'success');
-  } catch (err) {
-    showToast('Delete failed: ' + err.message, 'error');
-  }
-};
+    if (!window.confirm("Are you sure you want to move this product to Deleted Items?")) return;
+    try {
+      await softDeleteProduct(prodcode);
+      setProducts(prev => prev.filter(p => p.prodcode !== prodcode));
+      showToast('Product moved to Deleted Items', 'success');
+    } catch (err) {
+      showToast('Delete failed: ' + err.message, 'error');
+    }
+  };
 
-  const filteredProducts = products.filter(p =>
-    (p.prodcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     p.description?.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredProducts = (() => {
+    const list = products.filter(p =>
+      p.prodcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (activeTab !== 'listing') return list;
+
+    return [...list].sort((a, b) => {
+      let aVal = a[sortConfig.key] ?? '';
+      let bVal = b[sortConfig.key] ?? '';
+      if (sortConfig.key === 'price') {
+        aVal = Number(aVal);
+        bVal = Number(bVal);
+        return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      if (sortConfig.key === 'effective_date') {
+        aVal = aVal ? new Date(aVal) : new Date(0);
+        bVal = bVal ? new Date(bVal) : new Date(0);
+        return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      return sortConfig.direction === 'asc'
+        ? String(aVal).localeCompare(String(bVal))
+        : String(bVal).localeCompare(String(aVal));
+    });
+  })();
 
   const exportToCSV = () => {
     if (!filteredProducts.length) return;
-    const headers = activeTab === 'products' 
+    const headers = activeTab === 'products'
       ? ['PROD. CODE', 'DESCRIPTION', 'UNIT', 'STATUS', 'STOCK']
       : ['PRODUCT CODE', 'DESCRIPTION', 'UNIT', 'CURRENT PRICE', 'EFFECTIVE DATE'];
-    const rows = filteredProducts.map(p => 
-      activeTab === 'products' 
+    const rows = filteredProducts.map(p =>
+      activeTab === 'products'
         ? [p.prodcode, p.description, p.unit, p.record_status === 'A' ? 'ACTIVE' : 'INACTIVE', p.stock || 0]
         : [p.prodcode, p.description, p.unit, Number(p.price).toFixed(2), p.effective_date ? new Date(p.effective_date).toLocaleDateString() : '']
     );
@@ -154,47 +180,51 @@ export default function Products() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white">
+    <div className="min-h-screen bg-[#f8faff]">
       <Navbar />
       <div className="max-w-7xl mx-auto px-6 pt-28 pb-12">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="serif-font text-6xl md:text-7xl italic tracking-tighter">
+            <h1 className="serif-font text-5xl md:text-6xl italic tracking-tighter text-[#1e1b4b]">
               {activeTab === 'products' ? 'Products' : 'Product Listing'}
             </h1>
-            <p className="text-white/60 mt-2">
-              {activeTab === 'products' 
-                ? 'Manage product catalogue' 
+            <p className="text-slate-400 mt-2 text-sm">
+              {activeTab === 'products'
+                ? 'Manage product catalogue'
                 : 'Current prices for all active assets'}
             </p>
           </div>
 
           <div className="flex gap-3">
-            <button 
-              onClick={exportToCSV} 
+            <button
+              onClick={exportToCSV}
               disabled={!filteredProducts.length}
-              className="flex items-center gap-2 bg-[#d4af37] hover:bg-white text-black text-xs tracking-[0.15em] px-6 py-3 rounded transition-all"
+              className="flex items-center gap-2 bg-[#6366f1] hover:bg-[#4f46e5] text-white text-xs font-semibold tracking-wide px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-[#6366f1]/20 disabled:opacity-50"
             >
-              EXPORT CSV
+              Export CSV
             </button>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="flex items-center gap-2 border border-white/20 hover:bg-white/5 text-xs tracking-[0.15em] px-6 py-3 rounded transition-all"
+            <button
+              onClick={() => window.location.reload()}
+              className="flex items-center gap-2 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold tracking-wide px-5 py-2.5 rounded-xl transition-all"
             >
-              REFRESH
+              Refresh
             </button>
           </div>
         </div>
 
         {/* Stats Card */}
         <div className="mb-8">
-          <div className="inline-flex items-center gap-4 bg-black/50 border border-white/10 px-6 py-4 rounded-2xl">
-            <div className="text-4xl">📦</div>
+          <div className="inline-flex items-center gap-4 bg-white border border-slate-200 px-6 py-4 rounded-2xl shadow-sm">
+            <div className="w-10 h-10 bg-[#eef2ff] rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5 text-[#6366f1]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
             <div>
-              <div className="text-3xl font-mono text-[#d4af37]">{products.length}</div>
-              <div className="text-xs tracking-widest text-white/50">ACTIVE PRODUCTS</div>
+              <div className="text-3xl font-mono text-[#6366f1] font-bold">{products.length}</div>
+              <div className="text-xs tracking-wider text-slate-400 uppercase">Active Products</div>
             </div>
           </div>
         </div>
@@ -202,79 +232,101 @@ export default function Products() {
         {/* Search Bar */}
         <div className="mb-8">
           <div className="relative max-w-md">
-            <input 
-              type="text" 
-              placeholder="Search by code, description, or unit..." 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
-              className="w-full bg-black border border-white/10 pl-12 py-4 text-sm focus:border-[#d4af37] outline-none placeholder:text-white/40 rounded-2xl"
+            <input
+              type="text"
+              placeholder="Search by code or description..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-white border border-slate-200 pl-11 pr-4 py-3 text-sm text-[#1e1b4b] placeholder:text-slate-300 focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20 outline-none rounded-xl transition"
             />
-            <div className="absolute left-5 top-4 text-white/40">🔍</div>
+            <svg className="absolute left-4 top-3.5 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
           </div>
         </div>
 
         {/* Table */}
         {loading ? (
           <div className="flex justify-center py-20">
-            <div className="text-[#d4af37] text-xs tracking-[0.5em] animate-pulse">LOADING CATALOGUE...</div>
+            <div className="text-[#6366f1] text-xs tracking-[0.4em] animate-pulse uppercase">Loading catalogue...</div>
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-20 text-white/50">No products found.</div>
+          <div className="text-center py-20 text-slate-400">No products found.</div>
         ) : (
-          <div className="border border-white/10 overflow-hidden rounded-2xl shadow-2xl">
+          <div className="bg-white border border-slate-200 overflow-hidden rounded-2xl shadow-sm">
             <table className="w-full text-sm">
-              <thead className="bg-black/70 border-b border-white/10">
-                <tr className="text-xs tracking-[0.2em] text-white/60">
-                  <th className="px-8 py-5 text-left font-medium">PRODUCT CODE</th>
-                  <th className="px-8 py-5 text-left font-medium">DESCRIPTION</th>
-                  <th className="px-8 py-5 text-center font-medium">UNIT</th>
-                  
-                  {activeTab === 'products' ? (
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr className="text-[10px] tracking-wider text-slate-400 uppercase font-semibold">
+                  {activeTab === 'listing' ? (
                     <>
-                      <th className="px-8 py-5 text-center font-medium">STATUS</th>
-                      <th className="px-8 py-5 text-center font-medium">ACTIONS</th>
+                      {[
+                        { label: 'Product Code', key: 'prodcode', align: 'left' },
+                        { label: 'Description',  key: 'description', align: 'left' },
+                        { label: 'Unit',         key: 'unit', align: 'center' },
+                        { label: 'Current Price',key: 'price', align: 'right' },
+                        { label: 'Effective Date', key: 'effective_date', align: 'left' },
+                      ].map(col => (
+                        <th
+                          key={col.key}
+                          onClick={() => handleSort(col.key)}
+                          className={`px-6 py-4 text-${col.align} cursor-pointer select-none hover:text-[#6366f1] transition-colors`}
+                        >
+                          <span className="inline-flex items-center gap-1">
+                            {col.label}
+                            <span className="inline-flex flex-col leading-none">
+                              <svg className={`w-2.5 h-2.5 ${sortConfig.key === col.key && sortConfig.direction === 'asc' ? 'text-[#6366f1]' : 'text-slate-300'}`} viewBox="0 0 10 6" fill="currentColor"><path d="M5 0L0 6h10z"/></svg>
+                              <svg className={`w-2.5 h-2.5 ${sortConfig.key === col.key && sortConfig.direction === 'desc' ? 'text-[#6366f1]' : 'text-slate-300'}`} viewBox="0 0 10 6" fill="currentColor"><path d="M5 6L0 0h10z"/></svg>
+                            </span>
+                          </span>
+                        </th>
+                      ))}
                     </>
                   ) : (
                     <>
-                      <th className="px-8 py-5 text-right font-medium">CURRENT PRICE</th>
-                      <th className="px-8 py-5 text-left font-medium">EFFECTIVE DATE</th>
-                      <th className="px-8 py-5 text-center font-medium">ACTIONS</th>
+                      <th className="px-6 py-4 text-left">Product Code</th>
+                      <th className="px-6 py-4 text-left">Description</th>
+                      <th className="px-6 py-4 text-center">Unit</th>
+                      <th className="px-6 py-4 text-center">Status</th>
+                      <th className="px-6 py-4 text-center">Actions</th>
                     </>
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/10">
+              <tbody className="divide-y divide-slate-100">
                 {filteredProducts.map((p) => (
                   <React.Fragment key={p.id}>
-                    <tr className="hover:bg-white/5 transition-all duration-200">
-                      <td className="px-8 py-6 font-mono text-sm text-[#d4af37]">{p.prodcode}</td>
-                      <td className="px-8 py-6 text-white">{p.description}</td>
-                      <td className="px-8 py-6 text-center">
-                        <span className="inline-block px-3 py-1 text-xs tracking-widest bg-white/5 rounded-full">{p.unit}</span>
+                    <tr className="hover:bg-slate-50/60 transition-all duration-150">
+                      <td className="px-6 py-5 font-mono text-sm text-[#6366f1] font-semibold">{p.prodcode}</td>
+                      <td className="px-6 py-5 text-[#1e1b4b] font-medium">{p.description}</td>
+                      <td className="px-6 py-5 text-center">
+                        <span className="inline-block px-3 py-1 text-xs tracking-wider bg-slate-100 text-slate-500 rounded-full uppercase">{p.unit}</span>
                       </td>
                       {activeTab === 'products' ? (
                         <>
-                          <td className="px-8 py-6 text-center">
-                            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs tracking-widest ${p.record_status === 'A' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                              {p.record_status === 'A' ? 'ACTIVE' : 'INACTIVE'}
+                          <td className="px-6 py-5 text-center">
+                            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium tracking-wide ${p.record_status === 'A' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-500 border border-red-200'}`}>
+                              {p.record_status === 'A' ? 'Active' : 'Inactive'}
                             </span>
                           </td>
-                          <td className="px-8 py-6 text-center">
+                          <td className="px-6 py-5 text-center">
                             <div className="flex justify-center gap-2">
-                               <button onClick={() => openEditModal(p)} className="p-2 hover:bg-white/10 rounded transition">✎</button>
-                               <button onClick={() => handleDelete(p.prodcode)} className="p-2 hover:bg-red-500/20 text-red-400 rounded transition">🗑</button>
+                              <button onClick={() => openEditModal(p)} className="p-2 text-slate-400 hover:text-[#6366f1] hover:bg-[#eef2ff] rounded-lg transition">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                              </button>
+                              <button onClick={() => handleDelete(p.prodcode)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+                                </svg>
+                              </button>
                             </div>
                           </td>
                         </>
                       ) : (
                         <>
-                          <td className="px-8 py-6 text-right font-medium text-[#d4af37]">₱{Number(p.price || 0).toLocaleString()}</td>
-                          <td className="px-8 py-6 text-sm text-white/60">{p.effective_date ? new Date(p.effective_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}</td>
-                          <td className="px-8 py-6 text-center">
-                            <div className="flex justify-center gap-3">
-                              <button onClick={() => openHistoryModal(p)} className="px-4 py-2 text-xs border border-white/20 text-white/70 hover:border-[#d4af37] hover:text-[#d4af37] rounded-lg transition">HISTORY</button>
-                            </div>
-                          </td>
+                          <td className="px-6 py-5 text-right font-mono font-semibold text-[#6366f1]">${Number(p.price || 0).toLocaleString()}</td>
+                          <td className="px-6 py-5 text-sm text-slate-400">{p.effective_date ? new Date(p.effective_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}</td>
                         </>
                       )}
                     </tr>
@@ -288,41 +340,41 @@ export default function Products() {
 
       {/* Edit Modal */}
       {showEditModal && selectedProduct && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0a0a0c] border border-white/10 w-full max-w-md rounded-3xl p-8 shadow-2xl">
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-8">
               <div>
-                <div className="text-[#d4af37] text-xs tracking-[0.5em]">EDIT ASSET</div>
-                <h2 className="serif-font text-3xl italic">Update Records</h2>
+                <div className="text-[#6366f1] text-xs tracking-[0.4em] font-semibold uppercase">Edit Product</div>
+                <h2 className="serif-font text-3xl italic text-[#1e1b4b]">Update Records</h2>
               </div>
-              <button onClick={() => setShowEditModal(false)} className="text-white/50 hover:text-white text-3xl">×</button>
+              <button onClick={() => setShowEditModal(false)} className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition text-xl">×</button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div>
-                <label className="text-xs tracking-widest text-white/50 block mb-2">PRODUCT CODE</label>
-                <div className="font-mono text-lg text-white/80 bg-black/50 px-4 py-3 rounded-xl border border-white/10">
+                <label className="text-xs font-semibold text-slate-400 block mb-1.5 uppercase tracking-wider">Product Code</label>
+                <div className="font-mono text-base text-slate-600 bg-slate-50 px-4 py-3 rounded-xl border border-slate-200">
                   {selectedProduct.prodcode}
                 </div>
               </div>
 
               <div>
-                <label className="text-xs tracking-widest text-white/50 block mb-2">DESCRIPTION</label>
-                <textarea 
-                  value={editForm.description} 
-                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} 
-                  className="w-full bg-black border border-white/10 px-4 py-4 rounded-xl text-white focus:border-[#d4af37] outline-none h-24 resize-y"
+                <label className="text-xs font-semibold text-slate-400 block mb-1.5 uppercase tracking-wider">Description</label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  className="w-full bg-white border border-slate-200 px-4 py-3 rounded-xl text-[#1e1b4b] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20 outline-none h-24 resize-y transition text-sm"
                 />
               </div>
 
               <div>
-                <label className="text-xs tracking-widest text-white/50 block mb-3">UNIT</label>
+                <label className="text-xs font-semibold text-slate-400 block mb-2 uppercase tracking-wider">Unit</label>
                 <div className="flex flex-wrap gap-2">
                   {['pc', 'ea', 'mtr', 'pkg', 'ltr'].map((u) => (
-                    <button 
-                      key={u} 
-                      onClick={() => setEditForm({ ...editForm, unit: u })} 
-                      className={`px-5 py-2 text-sm rounded-full border transition-all ${editForm.unit === u ? 'bg-[#d4af37] text-black border-[#d4af37]' : 'border-white/20 text-white/70 hover:border-white/40'}`}
+                    <button
+                      key={u}
+                      onClick={() => setEditForm({ ...editForm, unit: u })}
+                      className={`px-4 py-2 text-sm rounded-xl border transition-all font-medium ${editForm.unit === u ? 'bg-[#6366f1] text-white border-[#6366f1]' : 'border-slate-200 text-slate-500 hover:border-[#6366f1]/40'}`}
                     >
                       {u.toUpperCase()}
                     </button>
@@ -331,18 +383,18 @@ export default function Products() {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-10">
-              <button 
-                onClick={() => setShowEditModal(false)} 
-                className="flex-1 py-4 border border-white/20 hover:bg-white/5 text-sm tracking-widest rounded-2xl transition"
+            <div className="flex gap-3 mt-8">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="flex-1 py-3 border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-semibold rounded-2xl transition"
               >
-                CANCEL
+                Cancel
               </button>
-              <button 
-                onClick={handleSaveEdit} 
-                className="flex-1 py-4 bg-[#d4af37] text-black text-sm tracking-widest font-medium rounded-2xl hover:bg-white transition"
+              <button
+                onClick={handleSaveEdit}
+                className="flex-1 py-3 bg-[#6366f1] hover:bg-[#4f46e5] text-white text-sm font-semibold rounded-2xl transition shadow-sm shadow-[#6366f1]/25"
               >
-                SAVE CHANGES
+                Save Changes
               </button>
             </div>
           </div>
@@ -351,73 +403,75 @@ export default function Products() {
 
       {/* Price History Modal */}
       {showHistoryModal && selectedProduct && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0a0a0c] border border-white/10 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl">
-            <div className="bg-black px-8 py-6 flex justify-between items-center border-b border-white/10">
+        <div className="modal-overlay" onClick={() => setShowHistoryModal(false)}>
+          <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="px-8 py-5 flex justify-between items-center border-b border-slate-200 bg-slate-50">
               <div>
-                <div className="text-[#d4af37] text-xs tracking-[0.5em]">VALUATION ARCHIVE</div>
-                <div className="font-mono text-lg text-white mt-1">{selectedProduct.prodcode}</div>
+                <div className="text-[#6366f1] text-xs tracking-[0.4em] font-semibold uppercase">Price History</div>
+                <div className="font-mono text-base text-[#1e1b4b] font-semibold mt-0.5">{selectedProduct.prodcode}</div>
               </div>
-              <button onClick={() => setShowHistoryModal(false)} className="text-white/50 hover:text-white text-3xl">×</button>
+              <button onClick={() => setShowHistoryModal(false)} className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 hover:bg-white transition text-xl">×</button>
             </div>
 
             <div className="p-8">
-              <div className="bg-black/50 border border-white/10 rounded-2xl p-6 mb-8">
-                <div className="text-xs tracking-widest text-white/50">CURRENT PRICE</div>
-                <div className="text-5xl font-mono text-[#d4af37] mt-2">
-                  ₱{Number(selectedProduct.price || 0).toLocaleString()}
+              <div className="bg-[#eef2ff] border border-[#6366f1]/20 rounded-2xl p-5 mb-6">
+                <div className="text-xs tracking-wider text-[#6366f1] font-semibold uppercase">Current Price</div>
+                <div className="text-5xl font-mono text-[#6366f1] mt-2 font-bold">
+                  ${Number(selectedProduct.price || 0).toLocaleString()}
                 </div>
-                <div className="text-xs text-white/40 mt-1">
+                <div className="text-xs text-slate-400 mt-1">
                   Effective {selectedProduct.effective_date ? new Date(selectedProduct.effective_date).toLocaleDateString() : '—'}
                 </div>
               </div>
 
-              <div className="mb-8">
-                <div className="text-xs tracking-widest text-white/50 mb-3">ADD NEW ENTRY</div>
-                <div className="flex gap-3">
+              <div className="mb-6">
+                <div className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">Add New Entry</div>
+                <div className="flex gap-2">
                   <input
                     type="date"
                     value={priceForm.effDate}
                     onChange={(e) => setPriceForm({ ...priceForm, effDate: e.target.value })}
-                    className="flex-1 bg-black border border-white/10 px-4 py-3 rounded-2xl text-sm focus:border-[#d4af37] outline-none"
+                    className="flex-1 bg-white border border-slate-200 px-3 py-2.5 rounded-xl text-sm focus:border-[#6366f1] outline-none transition"
                   />
                   <input
                     type="number"
                     step="0.01"
-                    placeholder="Unit Price"
+                    placeholder="Price"
                     value={priceForm.unitPrice}
                     onChange={(e) => setPriceForm({ ...priceForm, unitPrice: e.target.value })}
-                    className="w-32 bg-black border border-white/10 px-4 py-3 rounded-2xl text-sm focus:border-[#d4af37] outline-none"
+                    className="w-28 bg-white border border-slate-200 px-3 py-2.5 rounded-xl text-sm focus:border-[#6366f1] outline-none transition"
                   />
                   <button
                     onClick={handleAddPriceEntry}
-                    className="px-6 bg-[#d4af37] text-black rounded-2xl hover:bg-white transition text-sm font-medium whitespace-nowrap"
+                    className="px-5 bg-[#6366f1] hover:bg-[#4f46e5] text-white rounded-xl text-sm font-semibold transition whitespace-nowrap"
                   >
-                    ADD
+                    Add
                   </button>
                 </div>
               </div>
 
               <div>
-                <div className="text-xs tracking-widest text-white/50 mb-3">PRICE HISTORY ({(priceHistories[selectedProduct.prodcode] || []).length})</div>
-                <div className="border border-white/10 rounded-2xl overflow-hidden max-h-[240px] overflow-y-auto">
+                <div className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">
+                  History ({(priceHistories[selectedProduct.prodcode] || []).length})
+                </div>
+                <div className="border border-slate-200 rounded-2xl overflow-hidden max-h-60 overflow-y-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-black/60 sticky top-0">
-                      <tr className="text-xs text-white/50">
-                        <th className="px-6 py-4 text-left">EFFECTIVE DATE</th>
-                        <th className="px-6 py-4 text-right">UNIT PRICE</th>
+                    <thead className="bg-slate-50 sticky top-0">
+                      <tr className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                        <th className="px-5 py-3 text-left">Date</th>
+                        <th className="px-5 py-3 text-right">Price</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/10">
+                    <tbody className="divide-y divide-slate-100">
                       {(priceHistories[selectedProduct.prodcode] || []).length > 0 ? (
                         priceHistories[selectedProduct.prodcode].map((entry, idx) => (
-                          <tr key={idx} className="hover:bg-white/5">
-                            <td className="px-6 py-4 text-white/80">{new Date(entry.effdate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
-                            <td className="px-6 py-4 text-right font-mono text-[#d4af37]">₱{Number(entry.unitprice).toLocaleString()}</td>
+                          <tr key={idx} className="hover:bg-slate-50">
+                            <td className="px-5 py-3 text-slate-600">{new Date(entry.effdate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</td>
+                            <td className="px-5 py-3 text-right font-mono text-[#6366f1] font-semibold">${Number(entry.unitprice).toLocaleString()}</td>
                           </tr>
                         ))
                       ) : (
-                        <tr><td colSpan="2" className="px-6 py-8 text-center text-white/40 text-xs">No price history yet.</td></tr>
+                        <tr><td colSpan="2" className="px-5 py-8 text-center text-slate-400 text-xs">No price history yet.</td></tr>
                       )}
                     </tbody>
                   </table>

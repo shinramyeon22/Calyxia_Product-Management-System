@@ -54,7 +54,6 @@ export default function AdminDashboard() {
         .eq('id', userId);
       if (error) throw error;
 
-      // Verify DB actually updated (silent RLS failures return no error but change nothing)
       const { data: verify } = await supabase
         .from('app_user').select('record_status').eq('id', userId).single();
       if (normalizeRecordStatus(verify?.record_status) !== 'INACTIVE') {
@@ -80,7 +79,6 @@ export default function AdminDashboard() {
         .eq('id', userId);
       if (error) throw error;
 
-      // Verify DB actually updated
       const { data: verify } = await supabase
         .from('app_user').select('record_status').eq('id', userId).single();
       if (normalizeRecordStatus(verify?.record_status) !== 'ACTIVE') {
@@ -119,7 +117,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // NEW: Filter + A-Z Sorting Logic
   const filteredUsers = users
     .filter((u) => {
       const query = searchTerm.toLowerCase();
@@ -131,85 +128,88 @@ export default function AdminDashboard() {
     .sort((a, b) => (a.email || "").localeCompare(b.email || ""));
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white pt-20">
+    <div className="min-h-screen bg-[#f8faff] pt-20">
       <Navbar />
       <div className="flex">
         <Sidebar />
-        <div className={`flex-1 transition-all duration-300 p-8 md:p-12 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+        <div className={`flex-1 transition-all duration-300 p-8 md:p-10 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
+
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
             <div>
-              <div className="text-[#d4af37] text-xs tracking-[0.5em] mb-2 uppercase">Administration</div>
-              <h1 className="serif-font text-7xl italic tracking-tighter">User Accounts</h1>
-              <p className="text-white/50 mt-3 text-lg">Manage system access and identity permissions</p>
+              <div className="text-[#6366f1] text-xs tracking-[0.4em] mb-2 uppercase font-semibold">Administration</div>
+              <h1 className="serif-font text-5xl italic tracking-tighter text-[#1e1b4b]">User Accounts</h1>
+              <p className="text-slate-400 mt-2">Manage system access and identity permissions</p>
             </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              <input 
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
                 type="text"
-                placeholder="SEARCH IDENTITIES..."
+                placeholder="Search by email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-transparent border-b border-white/20 pb-2 text-sm tracking-widest outline-none focus:border-[#d4af37] transition-colors w-64 placeholder:text-white/20"
+                className="border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-[#1e1b4b] placeholder:text-slate-300 focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20 outline-none transition w-64 bg-white"
               />
-              <select 
+              <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-transparent border-b border-white/20 pb-2 text-xs tracking-[0.2em] outline-none cursor-pointer uppercase text-white"
+                className="border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-600 outline-none bg-white focus:border-[#6366f1] transition cursor-pointer"
               >
-                <option value="active" className="bg-[#050505]">Active Only</option>
-                <option value="inactive" className="bg-[#050505]">Inactive Only</option>
-                <option value="all" className="bg-[#050505]">All Records</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive Only</option>
+                <option value="all">All Records</option>
               </select>
             </div>
           </div>
 
-          <div className="border border-white/10 rounded-3xl overflow-hidden bg-black/40 min-h-[400px] relative">
+          {/* Table */}
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm min-h-[400px] relative">
             {loading ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-10">
-                <div className="text-[#d4af37] text-xs tracking-[0.5em] animate-pulse uppercase">Synchronizing...</div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-[#6366f1] text-xs tracking-[0.4em] animate-pulse uppercase">Synchronizing...</div>
               </div>
             ) : (
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-white/10 text-[10px] tracking-[0.3em] text-white/40 uppercase">
-                    <th className="px-8 py-6 font-medium">Identity / Email</th>
-                    <th className="px-8 py-6 font-medium text-center">Authorization</th>
-                    <th className="px-8 py-6 font-medium text-center">Status</th>
-                    <th className="px-8 py-6 font-medium text-right">Actions</th>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-[10px] tracking-[0.3em] text-slate-400 uppercase">
+                    <th className="px-6 py-5 font-semibold">Identity / Email</th>
+                    <th className="px-6 py-5 font-semibold text-center">Authorization</th>
+                    <th className="px-6 py-5 font-semibold text-center">Status</th>
+                    <th className="px-6 py-5 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-slate-100">
                   {filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#d4af37] text-xs font-bold">
+                    <tr key={u.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-[#6366f1] flex items-center justify-center text-white text-xs font-bold shadow-sm shadow-[#6366f1]/30">
                             {u.email?.[0].toUpperCase()}
                           </div>
-                          <div className="font-mono text-sm tracking-tight">{u.email}</div>
+                          <div className="text-sm font-medium text-[#1e1b4b]">{u.email}</div>
                         </div>
                       </td>
-                      <td className="px-8 py-6 text-center">
-                        <span className="px-4 py-1.5 rounded-full bg-[#d4af37]/10 text-[#d4af37] text-[10px] font-bold tracking-widest border border-[#d4af37]/20 uppercase">
+                      <td className="px-6 py-5 text-center">
+                        <span className="px-3 py-1 rounded-full bg-[#eef2ff] text-[#6366f1] text-[10px] font-bold tracking-wider border border-[#6366f1]/20 uppercase">
                           {u.user_type || 'USER'}
                         </span>
                       </td>
-                      <td className="px-8 py-6 text-center">
+                      <td className="px-6 py-5 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <div className={`w-1.5 h-1.5 rounded-full ${normalizeRecordStatus(u.record_status) === 'ACTIVE' ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-red-500'}`} />
-                          <span className="text-[10px] tracking-widest text-white/60 uppercase">
+                          <div className={`w-1.5 h-1.5 rounded-full ${normalizeRecordStatus(u.record_status) === 'ACTIVE' ? 'bg-emerald-500' : 'bg-red-400'}`} />
+                          <span className={`text-[10px] tracking-wider font-medium uppercase ${normalizeRecordStatus(u.record_status) === 'ACTIVE' ? 'text-emerald-600' : 'text-red-500'}`}>
                             {normalizeRecordStatus(u.record_status)}
                           </span>
                         </div>
                       </td>
-                      <td className="px-8 py-6">
-                        <div className="flex items-center justify-end gap-3">
+                      <td className="px-6 py-5">
+                        <div className="flex items-center justify-end gap-2">
                           {isSuperAdmin ? (
                             <>
                               {u.user_type !== 'SUPERADMIN' && (
                                 <button
                                   onClick={() => handleEdit(u.id)}
-                                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-[#d4af37]"
+                                  className="p-2 hover:bg-[#eef2ff] rounded-lg transition-colors text-slate-400 hover:text-[#6366f1]"
                                   title="Edit Role"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -222,23 +222,23 @@ export default function AdminDashboard() {
                                   <button
                                     onClick={() => suspendUser(u.id, u.email)}
                                     disabled={togglingIds.has(u.id)}
-                                    className="px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wider border border-red-200 text-red-500 hover:bg-red-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
-                                    {togglingIds.has(u.id) ? '...' : 'SUSPEND'}
+                                    {togglingIds.has(u.id) ? '...' : 'Suspend'}
                                   </button>
                                 ) : (
                                   <button
                                     onClick={() => grantUser(u.id, u.email)}
                                     disabled={togglingIds.has(u.id)}
-                                    className="px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-wider border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
-                                    {togglingIds.has(u.id) ? '...' : 'GRANT'}
+                                    {togglingIds.has(u.id) ? '...' : 'Grant'}
                                   </button>
                                 )
                               )}
                             </>
                           ) : (
-                            <span className="text-[10px] tracking-widest text-white/20">—</span>
+                            <span className="text-[10px] tracking-wider text-slate-300">—</span>
                           )}
                         </div>
                       </td>
@@ -248,7 +248,7 @@ export default function AdminDashboard() {
               </table>
             )}
             {!loading && filteredUsers.length === 0 && (
-              <div className="py-20 text-center text-white/20 text-xs tracking-[0.5em]">NO IDENTITIES FOUND</div>
+              <div className="py-20 text-center text-slate-400 text-xs tracking-[0.4em] uppercase">No identities found</div>
             )}
           </div>
         </div>

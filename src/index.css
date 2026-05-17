@@ -1,38 +1,40 @@
 @import "tailwindcss";
 
 :root {
-  --accent: #d4af37;
+  --accent: #6366f1;
+  --accent-dark: #4f46e5;
+  --accent-light: #eef2ff;
+  --bg: #f8faff;
+  --dark: #1e1b4b;
 }
 
 body {
   font-family: 'Montserrat', system-ui, sans-serif;
-  background: #050505;
-  color: white;
+  background: #f8faff;
+  color: #1e1b4b;
 }
 
 .serif-font {
   font-family: 'Bodoni Moda', serif;
 }
 
-.gold-glow:focus {
-  box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
-  border-color: #d4af37;
+.purple-glow:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  border-color: #6366f1;
 }
 
 /* Page Transition Animation */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out forwards;
 }
 
-/* Modal improvements */
-.modal-open {
-  overflow: hidden !important;
-}
+/* Modal */
+.modal-open { overflow: hidden !important; }
 
 .modal-content {
   position: fixed;
@@ -43,20 +45,18 @@ body {
   overflow-y: auto;
 }
 
-/* Modal Overlay Styling - Ensure proper layering with header visible */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(5, 5, 5, 0.7);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(30, 27, 75, 0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 300;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Scrollable Modal Container - Keeps title and close button fixed */
 .modal-container {
   max-height: 90vh;
   overflow-y: auto;
@@ -68,9 +68,9 @@ body {
   flex-shrink: 0;
   position: sticky;
   top: 0;
-  background: #0a0a0c;
+  background: #ffffff;
   z-index: 10;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .modal-body {
@@ -78,64 +78,37 @@ body {
   overflow-y: auto;
 }
 
-/* Prevent scroll on body when modal is open */
-body.modal-open {
-  overflow: hidden;
-}
+body.modal-open { overflow: hidden; }
 
 /* ============================================
-   GLOBAL RESPONSIVE IMPROVEMENTS
+   GLOBAL RESPONSIVE
    ============================================ */
 @media (max-width: 768px) {
-  /* Better mobile padding for main content areas */
   .max-w-7xl {
     padding-left: 1rem !important;
     padding-right: 1rem !important;
   }
-
-  /* Reduce large padding on mobile */
   .py-16, .py-20 {
     padding-top: 2rem !important;
     padding-bottom: 2rem !important;
   }
-
   .px-8 {
     padding-left: 1rem !important;
     padding-right: 1rem !important;
   }
-
-  /* Smaller headings on mobile */
-  .serif-font.text-6xl, 
+  .serif-font.text-6xl,
   .serif-font.text-7xl {
     font-size: 2.75rem !important;
     line-height: 1.05 !important;
   }
-
-  h1.serif-font {
-    font-size: 2.5rem !important;
+  h1.serif-font { font-size: 2.5rem !important; }
+  button, a[role="button"] {
+    min-height: 44px;
+    min-width: 44px;
   }
-
-  /* Touch-friendly buttons */
-  button, 
-  .gold-btn,
-  a[role="button"] {
-    min-height: 48px;
-    min-width: 48px;
-  }
-
-  /* Tables: ensure horizontal scroll */
-  .overflow-x-auto table {
-    min-width: 640px;
-  }
-
-  /* Modals full width on mobile - FIXED ESCAPING */
-  .fixed.inset-0 .bg-\[\#0a0a0c\] {
-    max-width: 100% !important;
-    margin: 1rem !important;
-  }
+  .overflow-x-auto table { min-width: 640px; }
 }
 
-/* Desktop refinements */
 @media (min-width: 1024px) {
   .max-w-7xl {
     max-width: 80rem;
