@@ -39,7 +39,7 @@ const Register = () => {
 
       if (signUpError) throw signUpError;
 
-      alert('Verification link sent! Please check your email to activate your account.');
+      alert('Registration submitted! Check your email to verify your address. Your account will be INACTIVE until a SuperAdmin approves it.');
       navigate('/login');
     } catch (error) {
       setError(error.message);

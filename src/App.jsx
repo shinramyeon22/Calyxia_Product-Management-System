@@ -22,28 +22,26 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   }
 
   if (!session) return <Navigate to="/login" replace />;
-  // App.jsx - Update the requireAdmin logic
-if (requireAdmin) {
-  const normalizeUserType = (type) => String(type || '').trim().replace(/[\s_-]+/g, '').toUpperCase();
-  const type = normalizeUserType(
-    user?.user_type ||
-    user?.raw_user_meta_data?.user_type ||
-    user?.raw_user_meta_data?.role ||
-    user?.user_metadata?.user_type ||
-    user?.user_metadata?.role ||
-    user?.app_metadata?.user_type ||
-    user?.app_metadata?.role
-  );
-  // If we have a session but the user_type hasn't loaded yet, 
-  // show the loading state instead of redirecting
-  if (!type && session) {
-    return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-[#d4af37]">VERIFYING PERMISSIONS...</div>;
+
+  // Block only when the DB explicitly says INACTIVE/I — never block SUPERADMIN.
+  // An empty/undefined record_status means the profile couldn't be fetched (RLS),
+  // so we give the benefit of the doubt to the valid session.
+  if (user && user.record_status) {
+    const status = String(user.record_status).toUpperCase();
+    const type  = String(user.user_type  || '').toUpperCase();
+    const isInactive = status === 'INACTIVE' || status === 'I';
+    if (type !== 'SUPERADMIN' && isInactive) {
+      return <Navigate to="/login?error=not_activated" replace />;
+    }
   }
 
-  if (!['ADMIN', 'SUPERADMIN'].includes(type)) {
-    return <Navigate to="/products" replace />;
+  if (requireAdmin) {
+    const normalizeUserType = (type) => String(type || '').trim().replace(/[\s_-]+/g, '').toUpperCase();
+    const type = normalizeUserType(user?.user_type);
+    if (!['ADMIN', 'SUPERADMIN'].includes(type)) {
+      return <Navigate to="/products" replace />;
+    }
   }
-}
 
   return children;
 };
