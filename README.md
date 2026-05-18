@@ -10,7 +10,7 @@
   A comprehensive product management system built with React and Vite, featuring role-based access control, product management capabilities, and a modern user interface.
   <br/><br/>
   <strong>Live Deployment:</strong>
-  <a href="https://calyxia-product-management-system-gamma.vercel.app/login">
+  <a href="calyxia-product-management-system.vercel.app">
     https://calyxia-product-management-system-gamma.vercel.app/login
   </a>
 </p>
