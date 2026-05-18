@@ -45,7 +45,7 @@ function AuthCallback() {
       const userType = String(userRow?.user_type || '').toUpperCase();
       const status = String(userRow?.record_status || '').toUpperCase();
       if (userType === 'SUPERADMIN' || status === 'A' || status === 'ACTIVE') {
-        navigate('/products');
+        navigate('/admin/products');
       } else {
         await supabase.auth.signOut();
         navigate('/login?error=not_activated');

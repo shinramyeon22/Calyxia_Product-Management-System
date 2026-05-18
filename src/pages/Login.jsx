@@ -19,15 +19,14 @@ export default function Login() {
 
     let message = '';
     if (statusCode === 'pending_approval') {
-      message = 'Account created! Your account is INACTIVE pending SuperAdmin approval. You will be notified once access is granted.';
+      message = 'Account created! Your account is inactive pending SuperAdmin approval.';
     } else if (errorCode === 'not_activated') {
-      message = 'Your account is INACTIVE and blocked from signing in. Contact your SuperAdmin to reactivate access.';
+      message = 'Your account is inactive. Contact your SuperAdmin to reactivate access.';
     } else if (errorCode === 'auth_failed') {
-      message = 'Authentication failed. Please try signing in again or contact support.';
+      message = 'Authentication failed. Please try signing in again.';
     } else if (errorCode) {
       message = `Login failed: ${errorCode}`;
     }
-
     setTimeout(() => setError(message), 0);
   }, [location.search]);
 
@@ -37,13 +36,11 @@ export default function Login() {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        }
+        options: { redirectTo: `${window.location.origin}/auth/callback` }
       });
       if (error) throw error;
     } catch (error) {
-      setError("Google Auth Error: " + error.message);
+      setError('Google sign-in failed: ' + error.message);
       setLoading(false);
     }
   };
@@ -52,151 +49,136 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError('');
-
     try {
-      // 1. Sign in with Supabase Auth
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) throw signInError;
 
-      // 2. Fetch profile to check status and role
       const { data: profile } = await supabase
         .from('app_user')
         .select('record_status, user_type')
         .eq('id', data.user.id)
         .single();
 
-      // 3. If profile loaded, enforce status. SUPERADMIN always passes.
-      //    If profile couldn't load (RLS not configured), let the session through —
-      //    the admin must fix RLS policies in Supabase.
       if (profile) {
         const userType = String(profile.user_type || '').toUpperCase();
         if (userType !== 'SUPERADMIN') {
           const status = String(profile.record_status || '').toUpperCase();
           if (status !== 'A' && status !== 'ACTIVE') {
             await supabase.auth.signOut();
-            setError("Access Denied: Your account is inactive. Contact your SuperAdmin.");
+            setError('Your account is inactive. Contact your SuperAdmin.');
             setLoading(false);
             return;
           }
         }
       }
-
-      // 4. Success
-      navigate('/products');
-
+      navigate('/admin/products');
     } catch (err) {
-      setError("Login Error: " + err.message);
+      setError('Login failed: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Custom styles to remove the yellow autofill background
-  const inputStyles = {
-    WebkitBoxShadow: '0 0 0 1000px #050505 inset',
-    WebkitTextFillColor: 'white',
-    transition: 'background-color 5000s ease-in-out 0s',
-  };
-
   return (
-    <div className="min-h-screen w-full flex bg-[#050505] overflow-hidden">
-      {/* Left Visual Panel */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-[#0a0a0c] items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 opacity-70">
-          <img 
-            src="https://i.pinimg.com/736x/9a/5c/e2/9a5ce2ac05544aa4ae130cbde8632890.jpg" 
-            alt="Office View" 
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/80" />
-        </div>
-        
+    <div className="min-h-screen w-full flex bg-[#f8faff] overflow-hidden">
+
+      {/* ── Left: Purple brand panel ── */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-[#6366f1] to-[#4338ca] items-center justify-center overflow-hidden">
+        {/* Decorative blobs */}
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-32 -left-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl" />
+
         <div className="relative z-10 text-center px-12">
-          <h2 className="serif-font text-[180px] leading-none text-[#d4af37] select-none">CX</h2>
-          <p className="text-[#d4af37] text-xs tracking-[0.5em] mt-6">THE PRIVATE PRODUCT</p>
+          <h2 className="serif-font text-[160px] leading-none text-white/20 select-none font-bold">CX</h2>
+          <div className="mt-2">
+            <p className="serif-font text-4xl italic text-white tracking-tight">Calyxia</p>
+            <p className="text-white/60 text-xs tracking-[0.5em] mt-2 uppercase">Management Enterprise</p>
+          </div>
+          <div className="mt-12 flex flex-col gap-3 text-left max-w-xs mx-auto">
+            {['Secure product vault', 'Role-based access control', 'Real-time updates'].map(f => (
+              <div key={f} className="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3 backdrop-blur-sm">
+                <div className="w-2 h-2 rounded-full bg-white/80 flex-shrink-0" />
+                <span className="text-white/80 text-sm">{f}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Right Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 bg-[#050505]">
+      {/* ── Right: White form panel ── */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16 bg-white">
         <div className="w-full max-w-md">
-          <div className="text-center mb-12">
-            <h1 className="serif-font text-6xl italic tracking-tighter">Calyxia</h1>
-            <p className="text-white/50 mt-3 text-xs tracking-[0.3em]">MANAGEMENT ENTERPRISE</p>
+          <div className="mb-10">
+            <h1 className="serif-font text-5xl italic text-[#1e1b4b] tracking-tighter">Calyxia</h1>
+            <p className="text-slate-400 mt-2 text-xs tracking-[0.3em] uppercase">Welcome back — sign in to continue</p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-950/30 border border-red-500/50 text-red-400 text-xs tracking-widest rounded-xl">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleEmailLogin} className="space-y-6">
+          <form onSubmit={handleEmailLogin} className="space-y-5">
             <div>
-              <label className="block text-[10px] tracking-[0.2em] text-white/40 mb-3 ml-1 uppercase">Email Address</label>
-              <input 
-                type="email" 
-                placeholder="you@example.com" 
+              <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Email Address</label>
+              <input
+                type="email"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                style={inputStyles}
-                className="w-full bg-[#050505] border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-white/20 focus:border-[#d4af37]/50 focus:ring-1 focus:ring-[#d4af37]/50 outline-none text-sm transition-all"
+                className="w-full border border-slate-200 rounded-xl px-5 py-3.5 text-[#1e1b4b] placeholder:text-slate-300 focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20 outline-none transition text-sm"
                 required
               />
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-3 px-1">
-                <label className="text-[10px] tracking-[0.2em] text-white/40 uppercase">Password</label>
-                <Link to="/forgot-password" size="xs" className="text-[10px] tracking-widest text-[#d4af37]/60 hover:text-[#d4af37]">Forgot password?</Link>
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Password</label>
+                <Link to="/forgot-password" className="text-xs text-[#6366f1] hover:text-[#4f46e5] transition-colors">Forgot password?</Link>
               </div>
               <div className="relative">
-                <input 
-                  type={showPassword ? "text" : "password"} 
-                  placeholder="••••••••" 
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  style={inputStyles}
-                  className="w-full bg-[#050505] border border-white/10 rounded-2xl px-6 py-4 text-white placeholder:text-white/20 focus:border-[#d4af37]/50 focus:ring-1 focus:ring-[#d4af37]/50 outline-none text-sm transition-all"
+                  className="w-full border border-slate-200 rounded-xl px-5 py-3.5 text-[#1e1b4b] placeholder:text-slate-300 focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20 outline-none transition text-sm"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/60 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
                 >
-                  {showPassword ? (
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                  ) : (
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9.88 9.88l-3.29-3.29m14.83 12.83l-3.29-3.29M12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61m-7.39-7.39a3 3 0 1 1 4.24 4.24"/></svg>
-                  )}
+                  {showPassword
+                    ? <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    : <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9.88 9.88l-3.29-3.29m14.83 12.83l-3.29-3.29M12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61m-7.39-7.39a3 3 0 1 1 4.24 4.24"/></svg>
+                  }
                 </button>
               </div>
             </div>
 
-            <button 
+            <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#d4af37] text-black py-4 rounded-2xl text-xs tracking-[0.2em] font-bold hover:bg-[#c4a030] active:scale-[0.98] transition-all disabled:opacity-70 mt-4 shadow-lg shadow-[#d4af37]/10"
+              className="w-full bg-[#6366f1] hover:bg-[#4f46e5] active:scale-[0.98] text-white py-4 rounded-2xl text-sm font-semibold tracking-wide transition-all shadow-lg shadow-[#6366f1]/25 disabled:opacity-60 mt-2"
             >
-              {loading ? "SIGNING IN..." : "SIGN IN"}
+              {loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
 
           <div className="my-8 flex items-center gap-4">
-            <div className="flex-1 h-[1px] bg-white/5"></div>
-            <span className="text-[10px] text-white/20 tracking-[0.3em]">OR</span>
-            <div className="flex-1 h-[1px] bg-white/5"></div>
+            <div className="flex-1 h-px bg-slate-100" />
+            <span className="text-xs text-slate-300 tracking-widest">OR</span>
+            <div className="flex-1 h-px bg-slate-100" />
           </div>
 
           <button
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full bg-white text-black py-4 rounded-2xl flex items-center justify-center gap-3 text-xs font-bold tracking-widest hover:bg-zinc-200 active:scale-[0.98] transition-all disabled:opacity-70"
+            className="w-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 py-3.5 rounded-2xl flex items-center justify-center gap-3 text-sm font-semibold tracking-wide transition-all disabled:opacity-60"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -207,9 +189,9 @@ export default function Login() {
             Continue with Google
           </button>
 
-          <p className="text-center text-[10px] text-white/30 mt-10 tracking-widest">
+          <p className="text-center text-xs text-slate-400 mt-8">
             No account?{' '}
-            <Link to="/register" className="text-[#d4af37] font-bold hover:text-white transition-colors">Sign up</Link>
+            <Link to="/register" className="text-[#6366f1] font-semibold hover:text-[#4f46e5] transition-colors">Sign up</Link>
           </p>
         </div>
       </div>
