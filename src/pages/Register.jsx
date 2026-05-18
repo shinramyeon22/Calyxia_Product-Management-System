@@ -64,6 +64,8 @@ const Register = () => {
     }
   };
 
+  const inputClass = "w-full border border-slate-200 rounded-xl px-5 py-3.5 text-[#1e1b4b] placeholder:text-slate-300 focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20 outline-none transition text-sm bg-white";
+
   return (
     <>
       <style>{`

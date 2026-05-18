@@ -441,7 +441,7 @@ const [statusFilter, setStatusFilter] = useState('active');
                                           <th className="px-5 py-3 text-right" style={{ color: 'rgba(255,255,255,0.35)' }}>Unit Price</th>
                                         </tr>
                                       </thead>
-                                      <tbody>
+                                      <tbody className="divide-y divide-slate-100">
                                         {(priceHistories[p.prodcode] || []).length > 0 ? priceHistories[p.prodcode].map((entry) => (
                                           <tr key={entry.effdate} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                                             <td className="px-5 py-3" style={{ color: 'rgba(255,255,255,0.65)' }}>{new Date(entry.effdate).toLocaleDateString()}</td>
