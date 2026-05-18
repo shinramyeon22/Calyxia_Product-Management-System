@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { softDeleteProduct, enrichProductsWithCurrentPrice, getPriceHistory, addPriceEntry, updateProduct } from '../services/productService';
 import Navbar from '../components/Navbar';
+import Sidebar from '../components/Sidebar';
+import { useSidebar } from '../context/SidebarContext';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/useToast';
@@ -30,6 +32,7 @@ export default function Products() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [searchParams] = useSearchParams();
+  const { isSidebarOpen } = useSidebar();
 
   const [activeTab, setActiveTab] = useState(
     searchParams.get('tab') === 'listing' ? 'listing' : 'products'
@@ -177,7 +180,10 @@ export default function Products() {
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #080614 0%, #0d0a22 45%, #0a0818 100%)' }}>
       <Navbar />
-      <div className="relative overflow-hidden">
+      <div className="flex">
+        <Sidebar />
+        <div className={`flex-1 transition-all duration-300 relative overflow-hidden ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
+          <div className="relative overflow-hidden">
 
         {/* Floating background orbs */}
         <div className="pointer-events-none fixed inset-0 overflow-hidden" style={{ zIndex: 0 }}>
@@ -388,6 +394,8 @@ export default function Products() {
           )}
         </div>
       </div>
+    </div>
+  </div>
 
       {/* Edit Modal */}
       {showEditModal && selectedProduct && (

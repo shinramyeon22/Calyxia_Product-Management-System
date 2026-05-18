@@ -4,6 +4,7 @@ import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import { useRights } from '../context/UserRightsContext';
+import { useSidebar } from '../context/SidebarContext';
 import { acquireProduct, getProductStock, getPriceHistory, getCurrentPrice } from '../services/productService';
 
 export default function ProductDetails() {
@@ -18,6 +19,7 @@ export default function ProductDetails() {
   const [loading, setLoading] = useState(true);
   const { hasRight, loading: rightsLoading } = useRights();
   const canViewAudit = hasRight('AUDIT_VIEW');
+  const { isSidebarOpen } = useSidebar();
 
   useEffect(() => {
     async function fetchProduct() {
@@ -91,7 +93,7 @@ export default function ProductDetails() {
   }
 
   return (
-    <div className="min-h-screen pt-20" style={pageStyle}>
+    <div className={`min-h-screen transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'} pt-28`} style={pageStyle}>
       <Navbar />
 
       {/* Floating background orbs */}
