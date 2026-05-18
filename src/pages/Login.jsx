@@ -18,9 +18,9 @@ export default function Login() {
     if (userType !== 'SUPERADMIN' && status !== 'ACTIVE' && status !== 'A') return;
 
     if (userType === 'SUPERADMIN' || userType === 'ADMIN') {
-      navigate('/admin', { replace: true });
+      navigate('/admin/products', { replace: true });
     } else {
-      navigate('/dashboard', { replace: true });
+      navigate('/admin/products', { replace: true });
     }
   }, [authLoading, session, user, navigate]);
   const [email, setEmail] = useState('');
