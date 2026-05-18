@@ -48,6 +48,12 @@ export default function Login() {
     setRegShowPassword(false); setRegShowConfirm(false); setRegError('');
   };
 
+  const PENDING_APPROVAL_MESSAGE = 'Your Account is not yet been approved. Please contact the Superadmin for approval';
+  const isPendingApprovalStatus = (status) => {
+    const normalized = String(status || '').trim().toUpperCase();
+    return normalized !== 'A' && normalized !== 'ACTIVE';
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setRegError('');
@@ -81,6 +87,7 @@ export default function Login() {
       }
 
       alert('Account created! Your account is currently inactive and requires SuperAdmin approval before you can sign in.');
+      setError(PENDING_APPROVAL_MESSAGE);
       // Force sign-out so the auto-session from signUp() doesn't bypass the
       // INACTIVE check — new accounts must wait for SuperAdmin approval.
       await supabase.auth.signOut();
@@ -100,10 +107,11 @@ export default function Login() {
     if (!errorCode && !statusCode) return;
 
     let message = '';
-    if (statusCode === 'pending_approval') {
-      message = 'Account created! Your account is inactive pending SuperAdmin approval.';
-    } else if (errorCode === 'not_activated') {
-      message = 'Your account is inactive. Contact your SuperAdmin to reactivate access.';
+    const pendingErrors = new Set(['not_activated', 'inactive', 'pending']);
+    const pendingStatuses = new Set(['pending_approval', 'inactive', 'pending']);
+
+    if (pendingErrors.has(errorCode) || pendingStatuses.has(statusCode)) {
+      message = PENDING_APPROVAL_MESSAGE;
     } else if (errorCode === 'auth_failed') {
       message = 'Authentication failed. Please try signing in again.';
     } else if (errorCode) {
@@ -143,13 +151,13 @@ export default function Login() {
 
       const userType = String(profile?.user_type || '').trim().replace(/[\s_-]+/g, '').toUpperCase();
       const status   = String(profile?.record_status || '').toUpperCase();
+      const isBlockedProfile = !profile || isPendingApprovalStatus(status);
 
       // SUPERADMIN always gets in regardless of status
       if (userType !== 'SUPERADMIN') {
-        // No profile row OR explicitly inactive → block access
-        if (!profile || status === 'INACTIVE' || status === 'I') {
+        if (isBlockedProfile) {
           await supabase.auth.signOut();
-          setError('Your account is inactive. Contact your SuperAdmin.');
+          setError(PENDING_APPROVAL_MESSAGE);
           setLoading(false);
           return;
         }
