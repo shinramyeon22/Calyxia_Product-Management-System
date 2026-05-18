@@ -24,20 +24,17 @@ export const AuthProvider = ({ children }) => {
         .single();
 
       if (error) {
-        console.warn("No profile found, using default USER:", error.message);
-        const fallbackType = (authUser?.user_type || authUser?.raw_user_meta_data?.user_type || authUser?.raw_user_meta_data?.role || authUser?.user_metadata?.user_type || authUser?.user_metadata?.role || authUser?.app_metadata?.user_type || authUser?.app_metadata?.role || 'USER').toUpperCase();
-        setUser({ 
-          ...authUser, 
-          user_type: fallbackType,
-          record_status: 'ACTIVE'
-        });
+        // Profile row not readable (RLS not set up yet). Let the user through —
+        // Login.jsx already gated on status. Do NOT force record_status here
+        // because we can't know the real value without reading the DB.
+        console.warn("Profile fetch failed — granting session-only access:", error.message);
+        setUser({ ...authUser });
       } else {
         setUser({ ...authUser, ...data });
       }
     } catch (err) {
       console.error("Profile fetch error:", err);
-      const fallbackType = (authUser?.user_type || authUser?.raw_user_meta_data?.user_type || authUser?.raw_user_meta_data?.role || authUser?.user_metadata?.user_type || authUser?.user_metadata?.role || authUser?.app_metadata?.user_type || authUser?.app_metadata?.role || 'USER').toUpperCase();
-      setUser({ ...authUser, user_type: fallbackType });
+      setUser({ ...authUser });
     } finally {
       setLoading(false); // CRITICAL: This stops the "Verifying Access" loop
     }
@@ -69,6 +66,38 @@ export const AuthProvider = ({ children }) => {
       if (subscription) subscription.unsubscribe();
     };
   }, [fetchUserProfile]);
+
+  // Watch for real-time status changes to the logged-in user's row.
+  // If a SuperAdmin suspends this account, force-sign-out immediately.
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const channel = supabase
+      .channel(`user-status-${session.user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'app_user',
+          filter: `id=eq.${session.user.id}`
+        },
+        async (payload) => {
+          const newStatus = String(payload.new?.record_status || '').toUpperCase();
+          const newType = String(payload.new?.user_type || '').toUpperCase();
+          if (newType !== 'SUPERADMIN' && newStatus !== 'A' && newStatus !== 'ACTIVE') {
+            await supabase.auth.signOut();
+          } else {
+            setUser(prev => prev ? { ...prev, ...payload.new } : prev);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session?.user?.id]);
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();

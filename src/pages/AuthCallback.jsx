@@ -20,14 +20,14 @@ function AuthCallback() {
         .eq('id', session.user.id)
         .single();
 
-      // If new user, create record and go to products
+      // If new user, create record as INACTIVE — awaiting SUPERADMIN approval
       if (fetchError && fetchError.code === 'PGRST116') {
         const { error: insertError } = await supabase
           .from('app_user')
           .insert([{
             id: session.user.id,
             email: session.user.email,
-            record_status: 'A', 
+            record_status: 'INACTIVE',
             user_type: 'USER'
           }]);
 
@@ -36,12 +36,15 @@ function AuthCallback() {
           return;
         }
 
-        navigate('/products');
+        await supabase.auth.signOut();
+        navigate('/login?status=pending_approval');
         return;
       }
 
-      // If existing user, check status
-      if (userRow?.record_status === 'ACTIVE') {
+      // SUPERADMIN always gets through regardless of record_status
+      const userType = String(userRow?.user_type || '').toUpperCase();
+      const status = String(userRow?.record_status || '').toUpperCase();
+      if (userType === 'SUPERADMIN' || status === 'A' || status === 'ACTIVE') {
         navigate('/products');
       } else {
         await supabase.auth.signOut();

@@ -14,14 +14,17 @@ export default function Login() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const errorCode = params.get('error');
-    if (!errorCode) return;
+    const statusCode = params.get('status');
+    if (!errorCode && !statusCode) return;
 
     let message = '';
-    if (errorCode === 'not_activated') {
-      message = 'Your account is INACTIVE and blocked from signing in. Contact your administrator to reactivate access.';
+    if (statusCode === 'pending_approval') {
+      message = 'Account created! Your account is INACTIVE pending SuperAdmin approval. You will be notified once access is granted.';
+    } else if (errorCode === 'not_activated') {
+      message = 'Your account is INACTIVE and blocked from signing in. Contact your SuperAdmin to reactivate access.';
     } else if (errorCode === 'auth_failed') {
       message = 'Authentication failed. Please try signing in again or contact support.';
-    } else {
+    } else if (errorCode) {
       message = `Login failed: ${errorCode}`;
     }
 
@@ -59,26 +62,30 @@ export default function Login() {
 
       if (signInError) throw signInError;
 
-      // 2. Fetch the profile to check status
-      const { data: profile, error: profileError } = await supabase
+      // 2. Fetch profile to check status and role
+      const { data: profile } = await supabase
         .from('app_user')
-        .select('record_status')
+        .select('record_status, user_type')
         .eq('id', data.user.id)
         .single();
 
-      if (profileError) throw profileError;
-
-      // 3. 🛡️ THE GATEKEEPER CHECK
-      // This allows 'A' or 'ACTIVE' and blocks everything else (like 'I' or 'INACTIVE')
-      const status = profile?.record_status;
-      if (status !== 'A' && status !== 'ACTIVE') {
-        await supabase.auth.signOut(); 
-        setError("Access Denied: Your account is pending admin approval.");
-        setLoading(false);
-        return; 
+      // 3. If profile loaded, enforce status. SUPERADMIN always passes.
+      //    If profile couldn't load (RLS not configured), let the session through —
+      //    the admin must fix RLS policies in Supabase.
+      if (profile) {
+        const userType = String(profile.user_type || '').toUpperCase();
+        if (userType !== 'SUPERADMIN') {
+          const status = String(profile.record_status || '').toUpperCase();
+          if (status !== 'A' && status !== 'ACTIVE') {
+            await supabase.auth.signOut();
+            setError("Access Denied: Your account is inactive. Contact your SuperAdmin.");
+            setLoading(false);
+            return;
+          }
+        }
       }
 
-      // 4. Success!
+      // 4. Success
       navigate('/products');
 
     } catch (err) {

@@ -4,14 +4,18 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import { useSidebar } from '../context/SidebarContext';
+import { useToast } from '../context/useToast';
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('active');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [togglingIds, setTogglingIds] = useState(new Set());
   const { user: currentAdmin } = useAuth();
+  const isSuperAdmin = String(currentAdmin?.user_type || '').toUpperCase() === 'SUPERADMIN';
   const { isSidebarOpen } = useSidebar();
+  const { showToast } = useToast();
   const hasFetched = useRef(false);
 
   const normalizeRecordStatus = (s) => {
@@ -39,37 +43,79 @@ export default function AdminDashboard() {
     }
   }, [fetchUsers]);
 
-  // NEW: Updated Toggle Status Function (matches button call)
-  const toggleUserStatus = async (userId, currentStatus) => {
-    const isCurrentlyActive = normalizeRecordStatus(currentStatus) === 'ACTIVE';
-    const newStatus = isCurrentlyActive ? 'INACTIVE' : 'ACTIVE';
+  const suspendUser = async (userId, email) => {
+    if (!window.confirm(`Suspend ${email}?\nThey will immediately lose access to the system.`)) return;
 
+    setTogglingIds(prev => new Set(prev).add(userId));
     try {
       const { error } = await supabase
         .from('app_user')
-        .update({ record_status: newStatus })
+        .update({ record_status: 'INACTIVE' })
         .eq('id', userId);
-
       if (error) throw error;
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, record_status: newStatus } : u));
+
+      // Verify DB actually updated (silent RLS failures return no error but change nothing)
+      const { data: verify } = await supabase
+        .from('app_user').select('record_status').eq('id', userId).single();
+      if (normalizeRecordStatus(verify?.record_status) !== 'INACTIVE') {
+        throw new Error('Database did not apply the update. Check Supabase RLS policies.');
+      }
+
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, record_status: 'INACTIVE' } : u));
+      showToast(`${email} has been suspended.`, 'error');
     } catch (err) {
-      console.error("Update failed:", err.message);
-      alert("Error: Check your Supabase RLS Update policies.");
+      console.error('Suspend failed:', err.message);
+      showToast(err.message || 'Failed to suspend account.', 'error');
+    } finally {
+      setTogglingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
     }
   };
 
-  // NEW: Simple Edit Function
+  const grantUser = async (userId, email) => {
+    setTogglingIds(prev => new Set(prev).add(userId));
+    try {
+      const { error } = await supabase
+        .from('app_user')
+        .update({ record_status: 'ACTIVE' })
+        .eq('id', userId);
+      if (error) throw error;
+
+      // Verify DB actually updated
+      const { data: verify } = await supabase
+        .from('app_user').select('record_status').eq('id', userId).single();
+      if (normalizeRecordStatus(verify?.record_status) !== 'ACTIVE') {
+        throw new Error('Database did not apply the update. Check Supabase RLS policies.');
+      }
+
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, record_status: 'ACTIVE' } : u));
+      showToast(`${email} has been approved and can now sign in.`, 'success');
+    } catch (err) {
+      console.error('Grant failed:', err.message);
+      showToast(err.message || 'Failed to approve account.', 'error');
+    } finally {
+      setTogglingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
+    }
+  };
+
   const handleEdit = async (userId) => {
     const newRole = prompt("Enter new Authorization (SUPERADMIN, ADMIN, USER):");
     if (!newRole) return;
-    
+    const normalized = newRole.trim().toUpperCase();
+    if (!['SUPERADMIN', 'ADMIN', 'USER'].includes(normalized)) {
+      showToast('Invalid role. Use SUPERADMIN, ADMIN, or USER.', 'error');
+      return;
+    }
+
     const { error } = await supabase
       .from('app_user')
-      .update({ user_type: newRole.toUpperCase() })
+      .update({ user_type: normalized })
       .eq('id', userId);
 
-    if (!error) {
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, user_type: newRole.toUpperCase() } : u));
+    if (error) {
+      showToast('Failed to update role. Check Supabase RLS policies.', 'error');
+    } else {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, user_type: normalized } : u));
+      showToast(`Role updated to ${normalized}.`, 'success');
     }
   };
 
@@ -158,25 +204,41 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-8 py-6">
                         <div className="flex items-center justify-end gap-3">
-                          <button 
-                            onClick={() => handleEdit(u.id)}
-                            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-[#d4af37]"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                          </button>
-                          {u.user_type !== 'SUPERADMIN' && u.id !== currentAdmin?.id && (
-                            <button 
-                              onClick={() => toggleUserStatus(u.id, u.record_status)}
-                              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest border transition-all ${
-                                normalizeRecordStatus(u.record_status) === 'ACTIVE' 
-                                ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' 
-                                : 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10'
-                              }`}
-                            >
-                              {normalizeRecordStatus(u.record_status) === 'ACTIVE' ? 'SUSPEND ' : 'GRANT'}
-                            </button>
+                          {isSuperAdmin ? (
+                            <>
+                              {u.user_type !== 'SUPERADMIN' && (
+                                <button
+                                  onClick={() => handleEdit(u.id)}
+                                  className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/40 hover:text-[#d4af37]"
+                                  title="Edit Role"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                  </svg>
+                                </button>
+                              )}
+                              {u.user_type !== 'SUPERADMIN' && u.id !== currentAdmin?.id && (
+                                normalizeRecordStatus(u.record_status) === 'ACTIVE' ? (
+                                  <button
+                                    onClick={() => suspendUser(u.id, u.email)}
+                                    disabled={togglingIds.has(u.id)}
+                                    className="px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {togglingIds.has(u.id) ? '...' : 'SUSPEND'}
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => grantUser(u.id, u.email)}
+                                    disabled={togglingIds.has(u.id)}
+                                    className="px-4 py-1.5 rounded-lg text-[10px] font-bold tracking-widest border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {togglingIds.has(u.id) ? '...' : 'GRANT'}
+                                  </button>
+                                )
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-[10px] tracking-widest text-white/20">—</span>
                           )}
                         </div>
                       </td>
