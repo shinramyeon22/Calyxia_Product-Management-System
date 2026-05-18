@@ -5,9 +5,10 @@ export default function PageTransition({ children }) {
   const location = useLocation();
 
   return (
-    <div 
+    <div
       key={location.pathname}
-      className="animate-fade-in"
+      className="animate-page-transition bg-inherit"
+      style={{ minHeight: '100vh' }}
     >
       {children}
     </div>

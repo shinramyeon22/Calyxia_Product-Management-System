@@ -179,7 +179,7 @@ export default function AdminDashboard() {
                   </span>
                 )}
               </div>
-              <p className="mt-2 text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>Manage system access and identity permissions</p>
+              <p className="mt-4 text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>Manage system access and identity permissions</p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
