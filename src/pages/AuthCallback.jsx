@@ -45,7 +45,7 @@ function AuthCallback() {
 
       // SUPERADMIN always gets through
       if (userType === 'SUPERADMIN') {
-        navigate('/admin');
+        navigate('/admin/products');
         return;
       }
 
@@ -57,7 +57,7 @@ function AuthCallback() {
 
       // Active ADMIN → admin dashboard; active USER → user dashboard
       if (userType === 'ADMIN') {
-        navigate('/dashboard');
+        navigate('/admin/products');
       } else {
         navigate('/admin/products');
       }

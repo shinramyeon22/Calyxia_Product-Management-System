@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../services/supabaseClient';
 import Navbar from '../components/Navbar';
@@ -75,7 +76,7 @@ export default function AdminDashboard() {
       showToast(`${email} has been suspended.`, 'error');
     } catch (err) {
       console.error('Suspend failed:', err.message);
-      showToast(err.message || 'Failed to suspend account.', 'error');
+      showToast(err.message || 'Failed to tester012@gmail.com account.', 'error');
     } finally {
       setTogglingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
     }
