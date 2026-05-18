@@ -152,6 +152,16 @@ const [statusFilter, setStatusFilter] = useState('active');
       const desc = formData.description.trim().slice(0, 30);
       if (!desc) return showToast('Description required (max 30 characters)', 'error');
       await updateProduct(selectedProduct.prodcode, { ...formData, description: desc }, user?.id);
+      const newPrice = parseFloat(formData.price);
+      const oldPrice = parseFloat(selectedProduct.price);
+      if (!isNaN(newPrice) && newPrice > 0 && newPrice !== oldPrice) {
+        const today = new Date().toISOString().split('T')[0];
+        try {
+          await addPriceEntry(selectedProduct.prodcode, today, newPrice, user?.id);
+        } catch {
+          // Duplicate entry for today — price history already has today's date; product.price was still updated
+        }
+      }
       setShowEditModal(false);
       setSelectedProduct(null);
       fetchProducts();
