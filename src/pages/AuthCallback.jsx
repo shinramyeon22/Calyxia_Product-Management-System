@@ -57,7 +57,7 @@ function AuthCallback() {
 
       // Active ADMIN → admin dashboard; active USER → user dashboard
       if (userType === 'ADMIN') {
-        navigate('/admin');
+        navigate('/dashboard');
       } else {
         navigate('/admin/products');
       }
