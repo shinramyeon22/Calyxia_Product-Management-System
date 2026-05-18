@@ -20,16 +20,14 @@ function AuthCallback() {
         .eq('id', session.user.id)
         .single();
 
-      // If new user, create record as INACTIVE — awaiting SUPERADMIN approval
+      // If the trigger didn't run yet (or isn't deployed), create the row here
       if (fetchError && fetchError.code === 'PGRST116') {
         const { error: insertError } = await supabase
           .from('app_user')
-          .insert([{
-            id: session.user.id,
-            email: session.user.email,
-            record_status: 'INACTIVE',
-            user_type: 'USER'
-          }]);
+          .upsert(
+            [{ id: session.user.id, email: session.user.email, record_status: 'INACTIVE', user_type: 'USER' }],
+            { onConflict: 'id', ignoreDuplicates: true }
+          );
 
         if (insertError) {
           navigate('/login?error=database_error');
@@ -41,14 +39,27 @@ function AuthCallback() {
         return;
       }
 
-      // SUPERADMIN always gets through regardless of record_status
       const userType = String(userRow?.user_type || '').toUpperCase();
-      const status = String(userRow?.record_status || '').toUpperCase();
-      if (userType === 'SUPERADMIN' || status === 'A' || status === 'ACTIVE') {
-        navigate('/admin/products');
-      } else {
+      const status   = String(userRow?.record_status || '').toUpperCase();
+      const isActive = status === 'A' || status === 'ACTIVE';
+
+      // SUPERADMIN always gets through
+      if (userType === 'SUPERADMIN') {
+        navigate('/admin');
+        return;
+      }
+
+      if (!isActive) {
         await supabase.auth.signOut();
         navigate('/login?error=not_activated');
+        return;
+      }
+
+      // Active ADMIN → admin dashboard; active USER → user dashboard
+      if (userType === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/admin/products');
       }
     };
 
